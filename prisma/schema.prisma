@@ -331,6 +331,8 @@ model Company {
   id             String       @id @default(cuid())
   organizationId String       @unique
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  /// Stable URL/seed key (optional so ad-hoc companies need no slug).
+  slug           String?      @unique
   sector         Sector
   subsector      String?
   tags           String[]

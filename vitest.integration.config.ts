@@ -8,7 +8,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['src/**/*.int.test.ts'],
+    include: ['src/**/*.int.test.ts', 'prisma/**/*.int.test.ts'],
     exclude: ['**/node_modules/**'],
     globalSetup: ['./src/test/int-setup.ts'],
     // Test files share one database: run them one at a time.
