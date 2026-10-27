@@ -4,14 +4,20 @@ import type { SessionUser } from './session';
 const state = vi.hoisted(() => ({
   token: undefined as string | undefined,
   user: null as SessionUser | null,
+  extended: false,
+  setError: new Error(
+    'Cookies can only be modified in a Server Action or Route Handler. Read more: x',
+  ) as Error | null,
+  sets: [] as { name: string; value: string; options: Record<string, unknown> }[],
 }));
 
 vi.mock('next/headers', () => ({
   cookies: async () => ({
     get: (name: string) =>
       name === 'ld_session' && state.token ? { name, value: state.token } : undefined,
-    set: () => {
-      throw new Error('Cookies can only be modified in a Server Action or Route Handler');
+    set: (name: string, value: string, options: Record<string, unknown>) => {
+      if (state.setError) throw state.setError;
+      state.sets.push({ name, value, options });
     },
   }),
 }));
@@ -33,7 +39,12 @@ vi.mock('./session', () => ({
   SESSION_COOKIE: 'ld_session',
   validateSessionDetailed: async () =>
     state.user
-      ? { user: state.user, sessionId: 's1', expiresAt: new Date(), extended: false }
+      ? {
+          user: state.user,
+          sessionId: 's1',
+          expiresAt: new Date(Date.now() + 7 * 86_400_000),
+          extended: state.extended,
+        }
       : null,
 }));
 
@@ -61,6 +72,11 @@ const digestOf = async (p: Promise<unknown>) => {
 beforeEach(() => {
   state.token = undefined;
   state.user = null;
+  state.extended = false;
+  state.setError = new Error(
+    'Cookies can only be modified in a Server Action or Route Handler. Read more: x',
+  );
+  state.sets = [];
 });
 
 describe('homePathFor', () => {
@@ -121,5 +137,33 @@ describe('requireActor', () => {
     state.user = user({ role: 'BACKOFFICE' });
     await expect(requireActor('BACKOFFICE')).resolves.toEqual(user({ role: 'BACKOFFICE' }));
     await expect(requireActor()).resolves.toEqual(user({ role: 'BACKOFFICE' }));
+  });
+});
+
+describe('getCurrentUser cookie refresh', () => {
+  it('re-issues the cookie when the session slid (Server Action / Route Handler)', async () => {
+    state.token = 't';
+    state.user = user();
+    state.extended = true;
+    state.setError = null;
+    await expect(getCurrentUser()).resolves.toEqual(user());
+    expect(state.sets).toHaveLength(1);
+    expect(state.sets[0]?.name).toBe('ld_session');
+    expect(state.sets[0]?.value).toBe('t');
+  });
+
+  it("swallows Next's read-only cookies error (Server Component render)", async () => {
+    state.token = 't';
+    state.user = user();
+    state.extended = true;
+    await expect(getCurrentUser()).resolves.toEqual(user());
+  });
+
+  it('rethrows any other error from cookies().set', async () => {
+    state.token = 't';
+    state.user = user();
+    state.extended = true;
+    state.setError = new TypeError('boom');
+    await expect(getCurrentUser()).rejects.toThrow('boom');
   });
 });

@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
+import { cache } from 'react';
 import { ForbiddenError, UnauthorizedError } from '@/domain/errors';
 import { assertRole } from '@/domain/policies/roles';
 import type { Role } from '@/domain/roles';
@@ -18,15 +19,26 @@ export function homePathFor(role: Role): '/marketplace' | '/seller' | '/bo' {
   }
 }
 
+/** Next's `ReadonlyRequestCookiesError` (unnamed class) thrown by `cookies().set` in a Server Component. */
+function isReadonlyCookiesError(err: unknown): boolean {
+  return (
+    err instanceof Error &&
+    (err.name === 'ReadonlyRequestCookiesError' ||
+      err.message.startsWith('Cookies can only be modified in a Server Action or Route Handler'))
+  );
+}
+
 /**
  * Current user from the `ld_session` cookie, or `null`. Request context only.
+ * Memoized with React `cache()`: one session lookup per request, however many
+ * layouts, pages and guards ask for it.
  *
  * When the session's expiry slid, the cookie's max-age is re-issued too. That
  * only works in a Server Action or Route Handler; Server Components cannot set
- * cookies, so there the DB expiry moves and the cookie keeps its old max-age
- * until the next action refreshes it.
+ * cookies, so that one Next error is swallowed (any other error propagates).
+ * The middleware also re-issues the cookie on every private-area request.
  */
-export async function getCurrentUser(): Promise<SessionUser | null> {
+export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
   if (!token) return null;
@@ -36,12 +48,12 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     const maxAge = Math.floor((session.expiresAt.getTime() - Date.now()) / 1000);
     try {
       store.set(SESSION_COOKIE, token, sessionCookieOptions(maxAge));
-    } catch {
-      // Server Component render: cookies are read-only here (see above).
+    } catch (err) {
+      if (!isReadonlyCookiesError(err)) throw err;
     }
   }
   return session.user;
-}
+});
 
 /**
  * Server-side guard for pages and actions:
