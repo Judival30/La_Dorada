@@ -12,6 +12,9 @@ const envSchema = z.object({
   SMTP_PORT: z.coerce.number().int().positive(),
   APP_URL: z.string().url(),
   SESSION_TTL_DAYS: z.coerce.number().int().positive().default(7),
+  STORAGE_DRIVER: z.enum(['s3', 'memory']).default('s3'),
+  MAIL_DRIVER: z.enum(['smtp', 'memory']).default('smtp'),
+  MAIL_FROM: z.string().min(1).default('La Dorada <no-responder@ladorada.local>'),
   ADAPTERS_MODE: z.enum(['mock']).default('mock'),
 });
 
