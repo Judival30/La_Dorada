@@ -19,3 +19,43 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16.6
+        env:
+          POSTGRES_USER: ladorada
+          POSTGRES_PASSWORD: ladorada
+          # int-setup.ts only resets databases whose name ends in _test.
+          POSTGRES_DB: ladorada_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ladorada -d ladorada_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://ladorada:ladorada@localhost:5432/ladorada_test
+      DATABASE_URL_TEST: postgresql://ladorada:ladorada@localhost:5432/ladorada_test
+      S3_ENDPOINT: http://localhost:9000
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY: ci-dummy
+      S3_SECRET_KEY: ci-dummy-secret
+      S3_BUCKET: ladorada-private
+      SMTP_HOST: localhost
+      SMTP_PORT: '1025'
+      APP_URL: http://localhost:3000
+      SESSION_TTL_DAYS: '7'
+      ADAPTERS_MODE: mock
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:int
