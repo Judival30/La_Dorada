@@ -14,3 +14,4 @@ docs/insumos/_img/
 .claude/worktrees/
 .superpowers/
 *.tsbuildinfo
+next-env.d.ts
