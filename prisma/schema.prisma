@@ -1,0 +1,790 @@
+// La Dorada — full data model (spec §4). Money is BigInt in COP pesos.
+// Percentages are Float (0–100). Status enums mirror src/domain literals
+// exactly (pinned by src/server/db/enums.test.ts).
+
+generator client {
+  provider      = "prisma-client-js"
+  // native for local dev; musl for the node:24-alpine Docker image.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────────── Enums ─────────────────────────────
+
+enum Role {
+  BUYER
+  SELLER
+  BACKOFFICE
+}
+
+enum UserStatus {
+  PENDING
+  IN_REVIEW
+  CORRECTIONS_REQUESTED
+  ENABLED
+  REJECTED
+  BLOCKED
+}
+
+enum OpportunityStatus {
+  DRAFT
+  IN_REVIEW
+  ADJUSTMENTS_REQUESTED
+  PUBLISHED
+  REJECTED
+  SUSPENDED
+  WITHDRAWN_BY_SELLER
+  CLOSED
+}
+
+enum AccessStatus {
+  REQUESTED
+  NDA_SIGNED
+  AUTHORIZED
+  REJECTED
+  REVOKED
+}
+
+enum DealStatus {
+  OFFER_SENT
+  COUNTER_OFFER
+  PRELIMINARY_AGREEMENT
+  LOI_SIGNED
+  DUE_DILIGENCE
+  CLOSED
+  WITHDRAWN
+}
+
+enum Sector {
+  AGROINDUSTRIA
+  ALIMENTOS_BEBIDAS
+  LOGISTICA
+  SERVICIOS_FINANCIEROS
+  MANUFACTURA
+  TECNOLOGIA
+  SALUD
+  RETAIL
+  CONSTRUCCION
+  ENERGIA
+}
+
+enum OpportunityType {
+  VENTA_TOTAL
+  VENTA_PARCIAL
+  LEVANTAMIENTO_CAPITAL
+  SOCIO_ESTRATEGICO
+}
+
+enum OfferAuthor {
+  BUYER
+  SELLER
+}
+
+/// Financial-consistency matrix status (src/domain/valuation.ts MatrixStatus).
+enum MatrixStatus {
+  APPROVED
+  TO_CLARIFY
+  RISK
+}
+
+/// Risk level (src/domain/valuation.ts RiskLevel).
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  TO_CLARIFY
+}
+
+/// Evaluation item status as displayed in the matrix (spec §4).
+enum EvaluationItemStatus {
+  COMPLETED
+  APPROVED
+  MEDIUM_RISK
+  TO_CLARIFY
+}
+
+enum EvaluationItemKind {
+  DOCUMENTARY
+  FINANCIAL_CONSISTENCY
+  CUSTOMER_DEPENDENCY
+  LEGAL_CONTINGENCIES
+}
+
+/// Alta / Media / Baja — used by Task, Question and Incident.
+enum Priority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum OrganizationKind {
+  COMPANY
+  BUYER_ENTITY
+}
+
+enum BuyerType {
+  FUND
+  STRATEGIC
+  FAMILY_OFFICE
+  ANGEL
+}
+
+enum VerificationCaseStatus {
+  OPEN
+  IN_REVIEW
+  CORRECTIONS_REQUESTED
+  APPROVED
+  REJECTED
+}
+
+enum VerificationDocumentType {
+  NATIONAL_ID
+  CHAMBER_OF_COMMERCE
+  RUT
+  POWER_OF_ATTORNEY
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum InfoSection {
+  SUMMARY
+  BUSINESS
+  REVENUE
+  FINANCIAL_STATEMENTS
+  CONTRACTS
+  CAPEX
+  LITIGATION
+  SHAREHOLDERS
+  OPERATIONS
+  PROJECTIONS
+}
+
+/// Stepper stage shown in the deal UI (spec §5).
+enum DealStage {
+  CONTACT
+  NDA_SIGNED
+  OFFER
+  NEGOTIATION
+  LOI
+  DUE_DILIGENCE
+  CLOSING
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COUNTERED
+  WITHDRAWN
+  EXPIRED
+}
+
+enum QuestionStatus {
+  OPEN
+  ANSWERED
+  CLOSED
+}
+
+enum IncidentStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+// ───────────────────────── Identity & KYC ─────────────────────────
+
+model User {
+  id             String        @id @default(cuid())
+  email          String        @unique
+  passwordHash   String
+  name           String
+  role           Role
+  status         UserStatus    @default(PENDING)
+  totpSecret     String?
+  consentAt      DateTime?
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  sessions          Session[]
+  verificationCases VerificationCase[]
+  buyerPreferences  BuyerPreferences?
+  opportunities     Opportunity[]      @relation("OpportunitySeller")
+  favorites         Favorite[]
+  accessRequests    AccessRequest[]
+  deals             Deal[]             @relation("DealBuyer")
+  offers            Offer[]
+  documents         Document[]
+  questions         Question[]
+  answers           Answer[]
+  messages          Message[]
+  meetings          Meeting[]
+  notifications     Notification[]
+  tasks             Task[]
+  reportedIncidents Incident[]         @relation("IncidentReporter")
+  assignedIncidents Incident[]         @relation("IncidentAssignee")
+  checkedKycItems   KycChecklistItem[]
+
+  @@index([role, status])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Organization {
+  id        String           @id @default(cuid())
+  name      String
+  nit       String           @unique
+  kind      OrganizationKind
+  buyerType BuyerType?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  members User[]
+  company Company?
+}
+
+model BuyerPreferences {
+  id               String            @id @default(cuid())
+  userId           String            @unique
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sectors          Sector[]
+  regions          String[]
+  revenueMin       BigInt?
+  revenueMax       BigInt?
+  ticketMin        BigInt?
+  ticketMax        BigInt?
+  opportunityTypes OpportunityType[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model VerificationCase {
+  id        String                 @id @default(cuid())
+  userId    String
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Onboarding step 1–6.
+  step      Int                    @default(1)
+  status    VerificationCaseStatus @default(OPEN)
+  notes     String?
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+
+  documents VerificationDocument[]
+  checklist KycChecklistItem[]
+
+  @@index([userId])
+}
+
+model VerificationDocument {
+  id                 String                   @id @default(cuid())
+  verificationCaseId String
+  verificationCase   VerificationCase         @relation(fields: [verificationCaseId], references: [id], onDelete: Cascade)
+  type               VerificationDocumentType
+  storageKey         String                   @unique
+  mime               String
+  size               Int
+  reviewStatus       ReviewStatus             @default(PENDING)
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  @@index([verificationCaseId])
+}
+
+model KycChecklistItem {
+  id                 String           @id @default(cuid())
+  verificationCaseId String
+  verificationCase   VerificationCase @relation(fields: [verificationCaseId], references: [id], onDelete: Cascade)
+  label              String
+  done               Boolean          @default(false)
+  checkedById        String?
+  checkedBy          User?            @relation(fields: [checkedById], references: [id], onDelete: SetNull)
+  checkedAt          DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([verificationCaseId])
+}
+
+// ─────────────────────── Companies & listings ───────────────────────
+
+model Company {
+  id             String       @id @default(cuid())
+  organizationId String       @unique
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sector         Sector
+  subsector      String?
+  tags           String[]
+  foundedYear    Int?
+  employeesRange String?
+  department     String
+  city           String
+  description    String
+  channels       String[]
+  capacity       String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  financialYears CompanyFinancialYear[]
+  opportunities  Opportunity[]
+
+  @@index([sector])
+}
+
+model CompanyFinancialYear {
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  year      Int
+  revenue   BigInt
+  ebitda    BigInt
+  netIncome BigInt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, year])
+}
+
+model Opportunity {
+  id                String            @id @default(cuid())
+  companyId         String
+  company           Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sellerId          String
+  seller            User              @relation("OpportunitySeller", fields: [sellerId], references: [id])
+  /// Public codename shown in the teaser (never the legal name).
+  title             String
+  type              OpportunityType
+  objective         String
+  dealSizeMin       BigInt?
+  dealSizeMax       BigInt?
+  horizon           String?
+  idealBuyerProfile String?
+  status            OpportunityStatus @default(DRAFT)
+  teaserImage       String?
+  teaserVideo       String?
+  publishedAt       DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  infoSections   InfoSectionVisibility[]
+  folders        DataRoomFolder[]
+  documents      Document[]
+  evaluation     Evaluation?
+  favorites      Favorite[]
+  accessRequests AccessRequest[]
+  deals          Deal[]
+  questions      Question[]
+  threads        Thread[]
+  meetings       Meeting[]
+
+  @@index([status])
+  @@index([sellerId])
+}
+
+model InfoSectionVisibility {
+  id            String      @id @default(cuid())
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  section       InfoSection
+  inTeaser      Boolean     @default(false)
+  inDataRoom    Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([opportunityId, section])
+}
+
+model DataRoomFolder {
+  id            String      @id @default(cuid())
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  name          String
+  position      Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  documents Document[]
+  questions Question[]
+
+  @@unique([opportunityId, name])
+}
+
+model Document {
+  id            String          @id @default(cuid())
+  opportunityId String?
+  opportunity   Opportunity?    @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  folderId      String?
+  folder        DataRoomFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  uploadedById  String
+  uploadedBy    User            @relation(fields: [uploadedById], references: [id])
+  name          String
+  storageKey    String          @unique
+  mime          String
+  size          Int
+  confidential  Boolean         @default(true)
+  reviewStatus  ReviewStatus    @default(PENDING)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  messages Message[]
+  answers  Answer[]
+
+  @@index([opportunityId])
+  @@index([folderId])
+}
+
+model Evaluation {
+  id                   String       @id @default(cuid())
+  opportunityId        String       @unique
+  opportunity          Opportunity  @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  valuationLow         BigInt
+  valuationHigh        BigInt
+  /// 0–100.
+  score                Int
+  docsDelivered        Int
+  docsRequired         Int
+  financialConsistency MatrixStatus
+  customerDependency   RiskLevel
+  legalContingencies   RiskLevel
+  /// Score breakdown shown to Back Office.
+  breakdown            Json?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  items EvaluationItem[]
+}
+
+model EvaluationItem {
+  id           String               @id @default(cuid())
+  evaluationId String
+  evaluation   Evaluation           @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  kind         EvaluationItemKind
+  status       EvaluationItemStatus
+  notes        String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  @@unique([evaluationId, kind])
+}
+
+// ─────────────────────────── Buyer access ───────────────────────────
+
+model Favorite {
+  id            String      @id @default(cuid())
+  buyerId       String
+  buyer         User        @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+
+  @@unique([buyerId, opportunityId])
+}
+
+model AccessRequest {
+  id            String       @id @default(cuid())
+  buyerId       String
+  buyer         User         @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  opportunityId String
+  opportunity   Opportunity  @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  purpose       String
+  /// 0–100.
+  relevance     Int
+  status        AccessStatus @default(REQUESTED)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  ndaSignatures NdaSignature[]
+
+  @@unique([buyerId, opportunityId])
+  @@index([opportunityId, status])
+}
+
+model NdaSignature {
+  id              String        @id @default(cuid())
+  accessRequestId String
+  accessRequest   AccessRequest @relation(fields: [accessRequestId], references: [id], onDelete: Cascade)
+  documentHash    String
+  signedAt        DateTime
+  expiresAt       DateTime
+  ip              String?
+  userAgent       String?
+  createdAt       DateTime      @default(now())
+
+  @@index([accessRequestId])
+}
+
+// ──────────────────────────── Negotiation ────────────────────────────
+
+model Deal {
+  id            String      @id @default(cuid())
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  buyerId       String
+  buyer         User        @relation("DealBuyer", fields: [buyerId], references: [id])
+  status        DealStatus  @default(OFFER_SENT)
+  stage         DealStage   @default(OFFER)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  offers     Offer[]
+  lois       Loi[]
+  checklist  DealChecklistItem[]
+  milestones Milestone[]
+  questions  Question[]
+  threads    Thread[]
+  meetings   Meeting[]
+
+  @@index([opportunityId])
+  @@index([buyerId])
+}
+
+model Offer {
+  id              String      @id @default(cuid())
+  dealId          String
+  deal            Deal        @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  parentOfferId   String?
+  parentOffer     Offer?      @relation("OfferCounter", fields: [parentOfferId], references: [id], onDelete: SetNull)
+  counterOffers   Offer[]     @relation("OfferCounter")
+  author          OfferAuthor
+  authorId        String
+  authorUser      User        @relation(fields: [authorId], references: [id])
+  preMoneyValue   BigInt
+  /// Percentage 0–100.
+  stakePct        Float
+  investmentType  String
+  paymentScheme   String
+  exclusivityDays Int
+  validUntil      DateTime
+  status          OfferStatus @default(PENDING)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  loi Loi?
+
+  @@index([dealId])
+}
+
+model Loi {
+  id               String    @id @default(cuid())
+  dealId           String
+  deal             Deal      @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  offerId          String    @unique
+  offer            Offer     @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  documentHash     String
+  signedByBuyerAt  DateTime?
+  signedBySellerAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model DealChecklistItem {
+  id        String    @id @default(cuid())
+  dealId    String
+  deal      Deal      @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  label     String
+  done      Boolean   @default(false)
+  dueDate   DateTime?
+  position  Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([dealId])
+}
+
+model Milestone {
+  id        String    @id @default(cuid())
+  dealId    String
+  deal      Deal      @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  label     String
+  done      Boolean   @default(false)
+  dueDate   DateTime?
+  position  Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([dealId])
+}
+
+// ───────────────────────── Q&A and messaging ─────────────────────────
+
+model Question {
+  id            String          @id @default(cuid())
+  dealId        String?
+  deal          Deal?           @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  opportunityId String?
+  opportunity   Opportunity?    @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  folderId      String?
+  folder        DataRoomFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  authorId      String
+  author        User            @relation(fields: [authorId], references: [id])
+  body          String
+  priority      Priority        @default(MEDIUM)
+  status        QuestionStatus  @default(OPEN)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  answers Answer[]
+
+  @@index([dealId])
+  @@index([opportunityId])
+}
+
+model Answer {
+  id         String    @id @default(cuid())
+  questionId String
+  question   Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User      @relation(fields: [authorId], references: [id])
+  body       String
+  documentId String?
+  document   Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([questionId])
+}
+
+model Thread {
+  id            String       @id @default(cuid())
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  dealId        String?
+  deal          Deal?        @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  subject       String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  messages Message[]
+  meetings Meeting[]
+
+  @@index([opportunityId])
+  @@index([dealId])
+}
+
+model Message {
+  id          String     @id @default(cuid())
+  threadId    String
+  thread      Thread     @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User       @relation(fields: [authorId], references: [id])
+  body        String
+  attachments Document[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([threadId, createdAt])
+}
+
+model Meeting {
+  id            String       @id @default(cuid())
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  dealId        String?
+  deal          Deal?        @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  threadId      String?
+  thread        Thread?      @relation(fields: [threadId], references: [id], onDelete: SetNull)
+  createdById   String
+  createdBy     User         @relation(fields: [createdById], references: [id])
+  title         String
+  startsAt      DateTime
+  endsAt        DateTime
+  /// Jitsi meeting link.
+  joinUrl       String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+// ───────────────────── Notifications & Back Office ─────────────────────
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String
+  payload   Json
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
+}
+
+model Task {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  priority  Priority  @default(MEDIUM)
+  dueDate   DateTime?
+  doneAt    DateTime?
+  entity    String?
+  entityId  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId, doneAt])
+}
+
+model Incident {
+  id          String         @id @default(cuid())
+  reporterId  String?
+  reporter    User?          @relation("IncidentReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  assigneeId  String?
+  assignee    User?          @relation("IncidentAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  title       String
+  description String
+  severity    Priority       @default(MEDIUM)
+  status      IncidentStatus @default(OPEN)
+  entity      String?
+  entityId    String?
+  resolvedAt  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([status])
+}
+
+/// Append-only (trigger `audit_log_append_only`), hash-chained by `seq` (R6).
+/// `actorId` deliberately has no FK so user deletion never touches the log.
+model AuditLog {
+  id       String   @id @default(cuid())
+  seq      BigInt   @unique @default(autoincrement())
+  at       DateTime @default(now())
+  actorId  String?
+  action   String
+  entity   String
+  entityId String
+  before   Json?
+  after    Json?
+  ip       String?
+  prevHash String?
+  hash     String   @unique
+
+  @@index([entity, entityId])
+  @@index([actorId])
+}
+
+/// Parameters: sector multiples, score weights, NDA validity (days), SLAs.
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}

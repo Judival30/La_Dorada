@@ -9,9 +9,14 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test:int": "vitest run -c vitest.integration.config.ts",
+    "db:migrate": "prisma migrate dev",
+    "db:reset": "prisma migrate reset --force",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.61.0",
@@ -32,6 +37,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.28",
     "prettier": "^3.9.10",
+    "prisma": "^6.19.3",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^5.0.5"
