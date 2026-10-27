@@ -9,7 +9,6 @@ import { NAV, ROLE_LABEL, type NavItem } from '@/config/nav';
 import { cn } from '@/lib/utils';
 import { logoutAction } from '@/server/auth/actions';
 import { Logo } from './logo';
-import { RidgeMini } from './ridge';
 
 type ShellUser = { name: string; email: string };
 type AppShellProps = { role: Role; user: ShellUser; children: React.ReactNode };
@@ -78,7 +77,7 @@ function BrandCard() {
         <span className="flex-1 bg-[#1A5CE6]" />
         <span className="flex-1 bg-[#DC2626]" />
       </div>
-      <RidgeMini className="mt-3" />
+      <div className="h-4" />
     </div>
   );
 }
@@ -111,7 +110,7 @@ export function AppShell({ role, user, children }: AppShellProps) {
   const roleLabel = ROLE_LABEL[role];
 
   return (
-    <div className="min-h-screen md:grid md:grid-cols-[16rem_1fr]">
+    <div className="min-h-screen md:grid md:grid-cols-[17.5rem_1fr]">
       <a
         href="#contenido"
         className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-[var(--ld-radius-control)] focus:bg-ld-navy focus:px-4 focus:py-2 focus:text-white"

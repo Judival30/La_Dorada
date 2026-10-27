@@ -1,8 +1,8 @@
 import { cn } from '@/lib/utils';
 
-const BACK = 'M0 230 L110 150 L190 195 L300 100 L400 170 L520 120 L640 200 L760 90 L880 175 L980 130 L1100 190 L1200 150 V320 H0 Z';
-const MID = 'M0 262 L90 215 L200 250 L330 172 L430 235 L560 158 L690 245 L820 168 L940 240 L1060 192 L1200 252';
-const FRONT = 'M0 296 L140 262 L280 291 L420 256 L580 293 L740 262 L900 294 L1050 268 L1200 293 V320 H0 Z';
+const BACK = 'M0 215 L70 175 L150 205 L260 120 L330 150 L420 95 L500 160 L580 140 L680 205 L790 110 L860 140 L940 60 L1010 120 L1090 100 L1200 170 V320 H0 Z';
+const MID = 'M0 270 L100 235 L170 255 L290 190 L360 215 L470 165 L540 205 L640 182 L720 250 L830 205 L900 228 L1010 178 L1090 215 L1200 200';
+const FRONT = 'M0 300 L160 276 L260 296 L400 270 L560 298 L700 280 L860 300 L1000 282 L1200 298 V320 H0 Z';
 
 const TONES = {
   /** Over a navy background (login panel). */
@@ -41,22 +41,6 @@ export function Ridge({ tone = 'navy', className }: RidgeProps) {
         className="ld-crest-line"
       />
       <path d={FRONT} fill={c.front} />
-    </svg>
-  );
-}
-
-/** Thin version for the sidebar brand card: the gold line alone over a soft base. */
-export function RidgeMini({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 240 40"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-      focusable="false"
-      className={cn('block h-8 w-full', className)}
-    >
-      <path d="M0 40 L0 28 L30 18 L55 26 L90 8 L120 24 L152 12 L185 26 L215 16 L240 24 V40 Z" fill="#DCE7FB" />
-      <path d="M0 28 L30 18 L55 26 L90 8 L120 24 L152 12 L185 26 L215 16 L240 24" fill="none" stroke="#F2B21B" strokeWidth="2" strokeLinejoin="round" />
     </svg>
   );
 }

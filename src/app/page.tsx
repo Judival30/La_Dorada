@@ -69,7 +69,7 @@ export default function LandingPage() {
               </a>
             </div>
           </div>
-          <Ridge tone="light" className="h-32 md:h-60" />
+          <Ridge tone="light" className="h-36 md:h-64" />
         </section>
 
         <section id="como-funciona" className="ld-on-navy bg-ld-navy text-white scroll-mt-0">

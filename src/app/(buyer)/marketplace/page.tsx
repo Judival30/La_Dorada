@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { Store } from 'lucide-react';
-import Link from 'next/link';
 import { EmptyState } from '@/components/ld/empty-state';
 import { PageHeader } from '@/components/ld/page-header';
 import { requireUser } from '@/server/auth/guard';
@@ -20,11 +19,6 @@ export default async function MarketplacePage() {
         icon={Store}
         title="Aquí verás las empresas disponibles"
         description="Muy pronto podrás filtrar por sector, región, ingresos y EBITDA, guardar tus favoritas y comparar hasta tres empresas lado a lado."
-        action={
-          <Link href="/#como-funciona" className="ld-btn ld-btn-quiet">
-            Ver cómo funciona
-          </Link>
-        }
       />
     </>
   );

@@ -119,7 +119,7 @@ Regla del oro: sobre fondo claro el oro mide 1,9:1, así que nunca porta texto. 
 
 ### Principios
 
-1. **Un solo gesto memorable: la cresta dorada.** Aparece en el login, en el borde del hero y como firma pequeña en la tarjeta del sidebar. Nada más usa oro con protagonismo.
+1. **Un solo gesto memorable: la cresta dorada.** Aparece en el login y en el borde del hero de la landing. Dentro de la aplicación el oro vive solo en el logo. Nada más usa oro con protagonismo.
 2. **Estructura con borde, no con sombra.** Los paneles son planos con borde de 1 px. Solo las superficies que flotan (cajón móvil, menús) llevan sombra, y es una.
 3. **Radio por jerarquía.** 8 px en elementos de navegación, 12 px en controles (botones, campos), 16 px en superficies grandes (paneles, tarjeta de login), pastilla completa en chips.
 4. **Cifras tabulares siempre.** El dinero se lee en columnas limpias y con el formato `COP 12.000 M`.
@@ -142,6 +142,18 @@ Se contrastó el plan con el brief del cliente y con la pregunta "¿esto sale ig
 | El texto de apoyo del login iba en mayúsculas pequeñas como etiqueta | Se quita la etiqueta; queda el título y una línea de apoyo | Etiquetas en mayúsculas son una marca de plantilla |
 
 El resto del plan se mantiene: tipografía, escala, paleta del brief y estructura de sidebar más topbar.
+
+## 2b. Revisión visual con capturas
+
+Capturas en `test-results/screens/` (1440x900 y 390x844). Cambios tras mirarlas:
+
+| Observación | Cambio |
+|---|---|
+| La cresta era un diente de sierra regular, parecía un gráfico de latidos | Siluetas irregulares con una cumbre dominante en las tres capas |
+| En móvil la cresta quedaba aplastada | Más alto en móvil (9 rem) |
+| El lema del logo se partía en dos líneas en el sidebar y "Oportunidades guardadas" saltaba de línea | Lema sin salto, interletraje menor, sidebar de 17,5 rem |
+| La tarjeta del sidebar tenía frase, franja tricolor y mini cresta | Se quita la mini cresta (el accesorio que sobra); queda la franja que pide el pitch |
+| El estado vacío del marketplace llevaba un botón que sacaba a la landing | Se quita; el texto ya dice qué viene |
 
 ## 3. Tokens
 
@@ -176,7 +188,7 @@ Modo oscuro: opcional, vía tokens (no se implementa en esta entrega).
 |---|---|
 | `Logo` | `variant="full"` (marca + wordmark + lema) o `"mark"`. SVG propio con dos montañas doradas. |
 | `Ridge` | La cresta: capas navy y línea dorada. Se anima una vez (dibujo del trazo) salvo con `prefers-reduced-motion`. |
-| `AppShell` | Sidebar, topbar y cajón móvil. Recibe `role` y `user`. |
+| `AppShell` | Sidebar (17,5 rem), topbar y cajón móvil. Recibe `role` y `user`. |
 | `StatusChip` | Tonos `success`, `warning`, `danger`, `info`, `neutral`. Siempre con texto. |
 | `KpiCard` | Valor tabular, etiqueta y variación opcional. Plano con borde. |
 | `Disclaimer` | Muestra `VALUATION_DISCLAIMER`. Obligatorio junto a valoración, score y ofertas (R3). |

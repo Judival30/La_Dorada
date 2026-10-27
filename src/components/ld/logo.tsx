@@ -33,7 +33,7 @@ export function Logo({ variant = 'full', tone = 'default', className }: LogoProp
       <span className="flex flex-col leading-none">
         <span
           className={cn(
-            'font-display text-[1.375rem] font-bold tracking-[-0.02em]',
+            'font-display text-[1.375rem] font-bold tracking-[-0.01em]',
             light ? 'text-white' : 'text-ld-navy',
           )}
         >
@@ -41,7 +41,7 @@ export function Logo({ variant = 'full', tone = 'default', className }: LogoProp
         </span>
         <span
           className={cn(
-            'mt-1 text-[0.625rem] font-medium tracking-[0.16em]',
+            'mt-1 whitespace-nowrap text-[0.625rem] font-medium tracking-[0.12em]',
             light ? 'text-[#B6C8EE]' : 'text-ld-muted',
           )}
         >

@@ -32,7 +32,7 @@ export default async function LoginPage({ searchParams }: Props) {
             registrada.
           </p>
         </div>
-        <Ridge tone="navy" className="mt-auto h-28 md:h-[22rem]" />
+        <Ridge tone="navy" className="mt-auto h-36 md:h-[24rem]" />
       </section>
 
       <main className="flex items-center px-6 py-10 md:px-16">
