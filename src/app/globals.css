@@ -3,47 +3,59 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* La Dorada tokens. Source of truth: docs/design-system.md */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-}
+  --ld-navy: #0b2a6b;
+  --ld-primary: #1a5ce6;
+  --ld-primary-hover: #154cc2;
+  --ld-primary-soft: #e8f0ff;
+  --ld-gold: #f2b21b;
+  --ld-gold-ink: #8a5200;
+  --ld-bg: #f5f8ff;
+  --ld-surface: #ffffff;
+  --ld-border: #e3e9f5;
+  --ld-ink: #33415f;
+  --ld-muted: #5a6785;
 
-.dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
+  --ld-success: #16a34a;
+  --ld-success-soft: #dcfce7;
+  --ld-success-ink: #166534;
+  --ld-warning: #d97706;
+  --ld-warning-soft: #fef3c7;
+  --ld-warning-ink: #92400e;
+  --ld-danger: #dc2626;
+  --ld-danger-soft: #fee2e2;
+  --ld-danger-ink: #991b1b;
+  --ld-info: #2563eb;
+  --ld-info-soft: #dbeafe;
+  --ld-info-ink: #1e40af;
+  --ld-neutral-soft: #eef2fa;
+  --ld-neutral-ink: #475569;
+
+  --ld-radius-nav: 8px;
+  --ld-radius-control: 12px;
+  --ld-radius-panel: 16px;
+
+  /* shadcn variables mapped onto the La Dorada tokens */
+  --radius: 0.75rem;
+  --background: var(--ld-bg);
+  --foreground: var(--ld-ink);
+  --card: var(--ld-surface);
+  --card-foreground: var(--ld-ink);
+  --popover: var(--ld-surface);
+  --popover-foreground: var(--ld-ink);
+  --primary: var(--ld-primary);
+  --primary-foreground: #ffffff;
+  --secondary: var(--ld-primary-soft);
+  --secondary-foreground: var(--ld-navy);
+  --muted: var(--ld-neutral-soft);
+  --muted-foreground: var(--ld-muted);
+  --accent: var(--ld-primary-soft);
+  --accent-foreground: var(--ld-navy);
+  --destructive: var(--ld-danger);
+  --border: var(--ld-border);
+  --input: var(--ld-border);
+  --ring: var(--ld-primary);
 }
 
 @theme inline {
@@ -65,19 +77,181 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  --color-ld-navy: var(--ld-navy);
+  --color-ld-primary: var(--ld-primary);
+  --color-ld-primary-soft: var(--ld-primary-soft);
+  --color-ld-gold: var(--ld-gold);
+  --color-ld-bg: var(--ld-bg);
+  --color-ld-surface: var(--ld-surface);
+  --color-ld-border: var(--ld-border);
+  --color-ld-ink: var(--ld-ink);
+  --color-ld-muted: var(--ld-muted);
+
+  --radius-nav: var(--ld-radius-nav);
+  --radius-control: var(--ld-radius-control);
+  --radius-panel: var(--ld-radius-panel);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-size: 1rem;
+    line-height: 1.625;
+  }
+  /* Digits line up in columns everywhere money and counts appear. */
+  .ld-num {
+    font-variant-numeric: tabular-nums;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ld-primary);
+    outline-offset: 2px;
+  }
+  .ld-on-navy :focus-visible {
+    outline-color: var(--ld-gold);
+  }
+}
+
+/* Type roles (docs/design-system.md, section 1) */
+@layer components {
+  .ld-display {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 2.125rem;
+    line-height: 2.375rem;
+    letter-spacing: -0.02em;
+    color: var(--ld-navy);
+  }
+  .ld-h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.625rem;
+    line-height: 2rem;
+    letter-spacing: -0.02em;
+    color: var(--ld-navy);
+  }
+  .ld-h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    letter-spacing: -0.01em;
+    color: var(--ld-navy);
+  }
+  .ld-h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.0625rem;
+    line-height: 1.5rem;
+    color: var(--ld-navy);
+  }
+  .ld-small {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+  .ld-note {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 500;
+  }
+  @media (min-width: 768px) {
+    .ld-display {
+      font-size: 3.25rem;
+      line-height: 3.375rem;
+    }
+    .ld-h1 {
+      font-size: 2rem;
+      line-height: 2.375rem;
+    }
+    .ld-h2 {
+      font-size: 1.5rem;
+      line-height: 2rem;
+    }
+    .ld-h3 {
+      font-size: 1.125rem;
+      line-height: 1.625rem;
+    }
+  }
+
+  .ld-field {
+    width: 100%;
+    min-height: 2.75rem;
+    border-radius: var(--ld-radius-control);
+    border: 1px solid #b9c5e0;
+    background: var(--ld-surface);
+    padding: 0 0.875rem;
+    color: var(--ld-navy);
+    font-size: 1rem;
+  }
+  .ld-field::placeholder {
+    color: var(--ld-muted);
+  }
+  .ld-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0 1.25rem;
+    border-radius: var(--ld-radius-control);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease;
+  }
+  .ld-btn-primary {
+    background: var(--ld-primary);
+    color: #ffffff;
+  }
+  .ld-btn-primary:hover {
+    background: var(--ld-primary-hover);
+  }
+  .ld-btn-primary:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+  .ld-btn-quiet {
+    border: 1px solid var(--ld-border);
+    background: var(--ld-surface);
+    color: var(--ld-navy);
+  }
+  .ld-btn-quiet:hover {
+    background: var(--ld-primary-soft);
+  }
+}
+
+/* The gold crest draws itself once, on load. */
+@keyframes ld-crest-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.ld-crest-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: ld-crest-draw 1600ms cubic-bezier(0.22, 0.61, 0.36, 1) 150ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

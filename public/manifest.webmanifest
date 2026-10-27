@@ -1,0 +1,11 @@
+{
+  "name": "La Dorada, empresas con más futuro",
+  "short_name": "La Dorada",
+  "description": "Marketplace para comprar o invertir en empresas privadas colombianas.",
+  "lang": "es-CO",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F8FF",
+  "theme_color": "#0B2A6B",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
