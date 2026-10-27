@@ -11,3 +11,5 @@ test-results/
 docs/insumos/_img/
 *.log
 .DS_Store
+.claude/worktrees/
+.superpowers/
