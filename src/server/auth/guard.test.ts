@@ -37,7 +37,8 @@ vi.mock('./session', () => ({
       : null,
 }));
 
-import { getCurrentUser, homePathFor, requireUser } from './guard';
+import { ForbiddenError, UnauthorizedError } from '@/domain/errors';
+import { getCurrentUser, homePathFor, requireActor, requireUser } from './guard';
 
 const user = (over: Partial<SessionUser> = {}): SessionUser => ({
   id: 'u1',
@@ -93,5 +94,32 @@ describe('requireUser', () => {
     state.user = user({ role: 'SELLER' });
     await expect(requireUser('SELLER', 'BACKOFFICE')).resolves.toEqual(user({ role: 'SELLER' }));
     await expect(requireUser()).resolves.toEqual(user({ role: 'SELLER' }));
+  });
+});
+
+describe('requireActor', () => {
+  it('throws UnauthorizedError without a session', async () => {
+    await expect(requireActor()).rejects.toBeInstanceOf(UnauthorizedError);
+    state.token = 't';
+    await expect(requireActor('BUYER')).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+
+  it('throws ForbiddenError when the user is not ENABLED', async () => {
+    state.token = 't';
+    state.user = user({ status: 'BLOCKED' });
+    await expect(requireActor()).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it('throws ForbiddenError when the role is not allowed', async () => {
+    state.token = 't';
+    state.user = user({ role: 'BUYER' });
+    await expect(requireActor('SELLER', 'BACKOFFICE')).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it('returns the user when enabled and allowed (never redirects)', async () => {
+    state.token = 't';
+    state.user = user({ role: 'BACKOFFICE' });
+    await expect(requireActor('BACKOFFICE')).resolves.toEqual(user({ role: 'BACKOFFICE' }));
+    await expect(requireActor()).resolves.toEqual(user({ role: 'BACKOFFICE' }));
   });
 });

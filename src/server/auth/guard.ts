@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
-import { ForbiddenError } from '@/domain/errors';
+import { ForbiddenError, UnauthorizedError } from '@/domain/errors';
 import { assertRole } from '@/domain/policies/roles';
 import type { Role } from '@/domain/roles';
 import { sessionCookieOptions } from './cookie';
@@ -57,5 +57,18 @@ export async function requireUser(...roles: Role[]): Promise<SessionUser> {
     if (err instanceof ForbiddenError) notFound();
     throw err;
   }
+  return user;
+}
+
+/**
+ * Throwing guard for Route Handlers and Server Actions (no redirects):
+ * no session → `UnauthorizedError` (401); status ≠ ENABLED or role not allowed →
+ * `ForbiddenError` (403). Map the error with `errorResponse` / `toActionError`
+ * from `@/server/http/errors`.
+ */
+export async function requireActor(...roles: Role[]): Promise<SessionUser> {
+  const user = await getCurrentUser();
+  if (!user) throw new UnauthorizedError();
+  assertRole(user, ...roles);
   return user;
 }

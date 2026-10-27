@@ -4,6 +4,7 @@ import {
   ForbiddenError,
   InvalidTransitionError,
   NotFoundError,
+  UnauthorizedError,
   ValidationError,
 } from '@/domain/errors';
 
@@ -46,6 +47,15 @@ describe('DomainError subclasses', () => {
     expect(err.code).toBe('VALIDATION');
     expect(err.message).toBe('NIT inválido');
     expect(err.name).toBe('ValidationError');
+  });
+
+  it('UnauthorizedError has code UNAUTHORIZED and default message', () => {
+    const err = new UnauthorizedError();
+    expect(err).toBeInstanceOf(DomainError);
+    expect(err.code).toBe('UNAUTHORIZED');
+    expect(err.message).toBe('Unauthorized');
+    expect(err.name).toBe('UnauthorizedError');
+    expect(new UnauthorizedError('Sesión requerida').message).toBe('Sesión requerida');
   });
 
   it('DomainError base carries code and message', () => {

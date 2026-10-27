@@ -9,6 +9,13 @@ export class DomainError extends Error {
   }
 }
 
+/** No authenticated session (HTTP 401). Contrast with `ForbiddenError` (authenticated, not allowed). */
+export class UnauthorizedError extends DomainError {
+  constructor(message = 'Unauthorized') {
+    super('UNAUTHORIZED', message);
+  }
+}
+
 export class ForbiddenError extends DomainError {
   constructor(message = 'Forbidden') {
     super('FORBIDDEN', message);
