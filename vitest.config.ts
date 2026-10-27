@@ -7,7 +7,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'prisma/**/*.test.ts'],
     exclude: ['**/node_modules/**', '**/*.int.test.ts'],
     coverage: { provider: 'v8' },
   },
