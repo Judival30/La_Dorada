@@ -13,3 +13,4 @@ docs/insumos/_img/
 .DS_Store
 .claude/worktrees/
 .superpowers/
+*.tsbuildinfo
