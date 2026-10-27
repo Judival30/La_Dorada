@@ -1,6 +1,9 @@
 import { createHash } from 'node:crypto';
 import { Prisma, type AuditLog, type PrismaClient } from '@prisma/client';
 import { db } from '@/server/db';
+import type { AuditAction } from './actions';
+
+export { AUDIT_ACTIONS, type AuditAction } from './actions';
 
 /**
  * Append-only, hash-chained audit log (spec R6).
@@ -25,7 +28,7 @@ const VERIFY_BATCH = 500;
 
 export type AuditEntry = {
   actorId: string | null;
-  action: string;
+  action: AuditAction;
   entity: string;
   entityId: string;
   before?: unknown;
@@ -108,8 +111,20 @@ function toDbJson(value: JsonValue): Prisma.InputJsonValue | typeof Prisma.DbNul
 /**
  * Appends one audit row inside the caller's transaction. Must be called with
  * the same `tx` as the audited mutation so both commit or roll back together.
+ * Prefer `audited()` (./audited.ts), which does exactly that.
+ *
+ * `PrismaClient` is structurally assignable to `TransactionClient`, so the type
+ * alone cannot stop `writeAudit(db, …)`. A root client exposes `$transaction`
+ * and an interactive-transaction client does not, so that call throws here.
  */
 export async function writeAudit(tx: Prisma.TransactionClient, e: AuditEntry): Promise<AuditLog> {
+  if ('$transaction' in tx) {
+    throw new Error(
+      'writeAudit requires an interactive transaction client (tx), not the root PrismaClient. ' +
+        'Wrap the mutation in audited() or db.$transaction(async (tx) => …).',
+    );
+  }
+
   // Released automatically on commit/rollback.
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(${AUDIT_LOCK_KEY})`;
 

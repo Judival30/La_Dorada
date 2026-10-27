@@ -1,7 +1,7 @@
 import { pathToFileURL } from 'node:url';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { hashPassword } from '../../src/server/auth/password';
-import { writeAudit } from '../../src/server/audit/audit';
+import { audited } from '../../src/server/audit/audited';
 import { DEFAULT_SCORE_WEIGHTS, DEFAULT_SECTOR_MULTIPLES } from '../../src/domain/valuation';
 import { millions } from '../../src/domain/money';
 import { SEED_COMPANIES } from './data/companies';
@@ -61,7 +61,7 @@ export async function seed(db: PrismaClient): Promise<SeedSummary> {
     settings: 0,
   };
 
-  await db.$transaction(
+  await audited(
     async (tx) => {
       // Organizations of the companies (NIT is the key) and the companies themselves.
       const orgByNit = new Map<string, string>();
@@ -175,15 +175,18 @@ export async function seed(db: PrismaClient): Promise<SeedSummary> {
         summary.settings++;
       }
 
-      await writeAudit(tx, {
-        actorId: null,
-        action: 'SEED_LOADED',
-        entity: 'Seed',
-        entityId: 'demo',
-        after: summary,
-      });
+      return {
+        result: summary,
+        audit: {
+          actorId: null,
+          action: 'SEED_LOADED',
+          entity: 'Seed',
+          entityId: 'demo',
+          after: summary,
+        },
+      };
     },
-    { timeout: 120_000, maxWait: 30_000 },
+    { client: db, timeout: 120_000, maxWait: 30_000 },
   );
 
   return summary;

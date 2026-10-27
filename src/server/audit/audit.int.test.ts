@@ -6,7 +6,7 @@ const APPEND_ONLY = /audit_log is append-only/;
 
 const entry = (n: number) => ({
   actorId: n % 2 === 0 ? `user_${n}` : null,
-  action: 'TEST_ACTION',
+  action: 'ACCESS_DENIED' as const,
   entity: 'Opportunity',
   entityId: `opp_${n}`,
   before: { status: 'DRAFT', amount: 12_000_000_000n },
