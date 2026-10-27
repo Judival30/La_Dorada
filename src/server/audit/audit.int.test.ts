@@ -1,6 +1,8 @@
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/server/db';
 import { verifyAuditChain, writeAudit } from './audit';
+
+const APPEND_ONLY = /audit_log is append-only/;
 
 const entry = (n: number) => ({
   actorId: n % 2 === 0 ? `user_${n}` : null,
@@ -12,9 +14,19 @@ const entry = (n: number) => ({
   ip: '127.0.0.1',
 });
 
+beforeAll(async () => {
+  // Safety net: these tests wipe AuditLog, so never run them outside a test DB.
+  const [row] = await db.$queryRaw<{ current_database: string }[]>`SELECT current_database()`;
+  expect(row?.current_database).toMatch(/test/i);
+});
+
 beforeEach(async () => {
-  // TRUNCATE is not blocked by the append-only trigger (UPDATE/DELETE only).
-  await db.$executeRawUnsafe('TRUNCATE TABLE "AuditLog" RESTART IDENTITY');
+  // TRUNCATE is blocked by audit_log_no_truncate. Replica mode (scoped to this
+  // transaction by SET LOCAL) disables ordinary triggers, TRUNCATE ones included.
+  await db.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe('SET LOCAL session_replication_role = replica');
+    await tx.$executeRawUnsafe('TRUNCATE TABLE "AuditLog" RESTART IDENTITY');
+  });
 });
 
 afterAll(async () => {
@@ -32,22 +44,43 @@ describe('writeAudit / verifyAuditChain', () => {
     expect(await verifyAuditChain()).toEqual({ ok: true });
   });
 
-  it('rejects update and delete with an append-only error', async () => {
+  it('rejects update, delete and truncate with an append-only error', async () => {
     const row = await db.$transaction((tx) => writeAudit(tx, entry(1)));
 
     await expect(
       db.auditLog.update({ where: { id: row.id }, data: { action: 'TAMPERED' } }),
-    ).rejects.toThrow(/append-only/);
-    await expect(db.auditLog.delete({ where: { id: row.id } })).rejects.toThrow(/append-only/);
+    ).rejects.toThrow(APPEND_ONLY);
+    await expect(db.auditLog.delete({ where: { id: row.id } })).rejects.toThrow(APPEND_ONLY);
+    await expect(db.$executeRawUnsafe('TRUNCATE TABLE "AuditLog"')).rejects.toThrow(APPEND_ONLY);
+    expect(await db.auditLog.count()).toBe(1);
   });
 
   it('keeps a valid chain under 20 concurrent writers', async () => {
     await Promise.all(
-      Array.from({ length: 20 }, (_, i) => db.$transaction((tx) => writeAudit(tx, entry(i)))),
+      Array.from({ length: 20 }, (_, i) =>
+        db.$transaction((tx) => writeAudit(tx, entry(i)), { maxWait: 10_000, timeout: 20_000 }),
+      ),
     );
 
     expect(await db.auditLog.count()).toBe(20);
     expect(await verifyAuditChain()).toEqual({ ok: true });
+  });
+
+  it('rejects a second row claiming the same prevHash (fork)', async () => {
+    const first = await db.$transaction((tx) => writeAudit(tx, entry(1)));
+    await db.$transaction((tx) => writeAudit(tx, entry(2)));
+
+    await expect(
+      db.auditLog.create({
+        data: {
+          action: 'FORK',
+          entity: 'X',
+          entityId: 'x',
+          prevHash: first.hash,
+          hash: 'f'.repeat(64),
+        },
+      }),
+    ).rejects.toThrow(/Unique constraint/);
   });
 
   it('detects a tampered row and reports its id', async () => {

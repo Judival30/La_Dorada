@@ -281,7 +281,7 @@ model BuyerPreferences {
 model VerificationCase {
   id        String                 @id @default(cuid())
   userId    String
-  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
   /// Onboarding step 1–6.
   step      Int                    @default(1)
   status    VerificationCaseStatus @default(OPEN)
@@ -298,7 +298,7 @@ model VerificationCase {
 model VerificationDocument {
   id                 String                   @id @default(cuid())
   verificationCaseId String
-  verificationCase   VerificationCase         @relation(fields: [verificationCaseId], references: [id], onDelete: Cascade)
+  verificationCase   VerificationCase         @relation(fields: [verificationCaseId], references: [id], onDelete: Restrict)
   type               VerificationDocumentType
   storageKey         String                   @unique
   mime               String
@@ -330,7 +330,7 @@ model KycChecklistItem {
 model Company {
   id             String       @id @default(cuid())
   organizationId String       @unique
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   sector         Sector
   subsector      String?
   tags           String[]
@@ -353,7 +353,7 @@ model Company {
 model CompanyFinancialYear {
   id        String   @id @default(cuid())
   companyId String
-  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
   year      Int
   revenue   BigInt
   ebitda    BigInt
@@ -367,9 +367,9 @@ model CompanyFinancialYear {
 model Opportunity {
   id                String            @id @default(cuid())
   companyId         String
-  company           Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company           Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
   sellerId          String
-  seller            User              @relation("OpportunitySeller", fields: [sellerId], references: [id])
+  seller            User              @relation("OpportunitySeller", fields: [sellerId], references: [id], onDelete: Restrict)
   /// Public codename shown in the teaser (never the legal name).
   title             String
   type              OpportunityType
@@ -416,7 +416,7 @@ model InfoSectionVisibility {
 model DataRoomFolder {
   id            String      @id @default(cuid())
   opportunityId String
-  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Restrict)
   name          String
   position      Int         @default(0)
   createdAt     DateTime    @default(now())
@@ -431,11 +431,11 @@ model DataRoomFolder {
 model Document {
   id            String          @id @default(cuid())
   opportunityId String?
-  opportunity   Opportunity?    @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunity   Opportunity?    @relation(fields: [opportunityId], references: [id], onDelete: Restrict)
   folderId      String?
-  folder        DataRoomFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  folder        DataRoomFolder? @relation(fields: [folderId], references: [id], onDelete: Restrict)
   uploadedById  String
-  uploadedBy    User            @relation(fields: [uploadedById], references: [id])
+  uploadedBy    User            @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
   name          String
   storageKey    String          @unique
   mime          String
@@ -445,8 +445,8 @@ model Document {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
-  messages Message[]
-  answers  Answer[]
+  messageAttachments MessageAttachment[]
+  answers            Answer[]
 
   @@index([opportunityId])
   @@index([folderId])
@@ -455,7 +455,7 @@ model Document {
 model Evaluation {
   id                   String       @id @default(cuid())
   opportunityId        String       @unique
-  opportunity          Opportunity  @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunity          Opportunity  @relation(fields: [opportunityId], references: [id], onDelete: Restrict)
   valuationLow         BigInt
   valuationHigh        BigInt
   /// 0–100.
@@ -502,9 +502,9 @@ model Favorite {
 model AccessRequest {
   id            String       @id @default(cuid())
   buyerId       String
-  buyer         User         @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  buyer         User         @relation(fields: [buyerId], references: [id], onDelete: Restrict)
   opportunityId String
-  opportunity   Opportunity  @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunity   Opportunity  @relation(fields: [opportunityId], references: [id], onDelete: Restrict)
   purpose       String
   /// 0–100.
   relevance     Int
@@ -521,7 +521,7 @@ model AccessRequest {
 model NdaSignature {
   id              String        @id @default(cuid())
   accessRequestId String
-  accessRequest   AccessRequest @relation(fields: [accessRequestId], references: [id], onDelete: Cascade)
+  accessRequest   AccessRequest @relation(fields: [accessRequestId], references: [id], onDelete: Restrict)
   documentHash    String
   signedAt        DateTime
   expiresAt       DateTime
@@ -537,9 +537,9 @@ model NdaSignature {
 model Deal {
   id            String      @id @default(cuid())
   opportunityId String
-  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Restrict)
   buyerId       String
-  buyer         User        @relation("DealBuyer", fields: [buyerId], references: [id])
+  buyer         User        @relation("DealBuyer", fields: [buyerId], references: [id], onDelete: Restrict)
   status        DealStatus  @default(OFFER_SENT)
   stage         DealStage   @default(OFFER)
   createdAt     DateTime    @default(now())
@@ -560,13 +560,13 @@ model Deal {
 model Offer {
   id              String      @id @default(cuid())
   dealId          String
-  deal            Deal        @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  deal            Deal        @relation(fields: [dealId], references: [id], onDelete: Restrict)
   parentOfferId   String?
-  parentOffer     Offer?      @relation("OfferCounter", fields: [parentOfferId], references: [id], onDelete: SetNull)
+  parentOffer     Offer?      @relation("OfferCounter", fields: [parentOfferId], references: [id], onDelete: Restrict)
   counterOffers   Offer[]     @relation("OfferCounter")
   author          OfferAuthor
   authorId        String
-  authorUser      User        @relation(fields: [authorId], references: [id])
+  authorUser      User        @relation(fields: [authorId], references: [id], onDelete: Restrict)
   preMoneyValue   BigInt
   /// Percentage 0–100.
   stakePct        Float
@@ -586,9 +586,9 @@ model Offer {
 model Loi {
   id               String    @id @default(cuid())
   dealId           String
-  deal             Deal      @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  deal             Deal      @relation(fields: [dealId], references: [id], onDelete: Restrict)
   offerId          String    @unique
-  offer            Offer     @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  offer            Offer     @relation(fields: [offerId], references: [id], onDelete: Restrict)
   documentHash     String
   signedByBuyerAt  DateTime?
   signedBySellerAt DateTime?
@@ -629,13 +629,13 @@ model Milestone {
 model Question {
   id            String          @id @default(cuid())
   dealId        String?
-  deal          Deal?           @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  deal          Deal?           @relation(fields: [dealId], references: [id], onDelete: Restrict)
   opportunityId String?
-  opportunity   Opportunity?    @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunity   Opportunity?    @relation(fields: [opportunityId], references: [id], onDelete: Restrict)
   folderId      String?
-  folder        DataRoomFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  folder        DataRoomFolder? @relation(fields: [folderId], references: [id], onDelete: Restrict)
   authorId      String
-  author        User            @relation(fields: [authorId], references: [id])
+  author        User            @relation(fields: [authorId], references: [id], onDelete: Restrict)
   body          String
   priority      Priority        @default(MEDIUM)
   status        QuestionStatus  @default(OPEN)
@@ -651,12 +651,12 @@ model Question {
 model Answer {
   id         String    @id @default(cuid())
   questionId String
-  question   Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  question   Question  @relation(fields: [questionId], references: [id], onDelete: Restrict)
   authorId   String
-  author     User      @relation(fields: [authorId], references: [id])
+  author     User      @relation(fields: [authorId], references: [id], onDelete: Restrict)
   body       String
   documentId String?
-  document   Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  document   Document? @relation(fields: [documentId], references: [id], onDelete: Restrict)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
@@ -666,9 +666,9 @@ model Answer {
 model Thread {
   id            String       @id @default(cuid())
   opportunityId String?
-  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Restrict)
   dealId        String?
-  deal          Deal?        @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  deal          Deal?        @relation(fields: [dealId], references: [id], onDelete: Restrict)
   subject       String
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
@@ -681,29 +681,41 @@ model Thread {
 }
 
 model Message {
-  id          String     @id @default(cuid())
+  id          String              @id @default(cuid())
   threadId    String
-  thread      Thread     @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  thread      Thread              @relation(fields: [threadId], references: [id], onDelete: Restrict)
   authorId    String
-  author      User       @relation(fields: [authorId], references: [id])
+  author      User                @relation(fields: [authorId], references: [id], onDelete: Restrict)
   body        String
-  attachments Document[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  attachments MessageAttachment[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
 
   @@index([threadId, createdAt])
+}
+
+/// Explicit join so a Document attached to a Message cannot be deleted
+/// (implicit m2m join tables always cascade).
+model MessageAttachment {
+  messageId  String
+  message    Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  createdAt  DateTime @default(now())
+
+  @@id([messageId, documentId])
 }
 
 model Meeting {
   id            String       @id @default(cuid())
   opportunityId String?
-  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Restrict)
   dealId        String?
-  deal          Deal?        @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  deal          Deal?        @relation(fields: [dealId], references: [id], onDelete: Restrict)
   threadId      String?
-  thread        Thread?      @relation(fields: [threadId], references: [id], onDelete: SetNull)
+  thread        Thread?      @relation(fields: [threadId], references: [id], onDelete: Restrict)
   createdById   String
-  createdBy     User         @relation(fields: [createdById], references: [id])
+  createdBy     User         @relation(fields: [createdById], references: [id], onDelete: Restrict)
   title         String
   startsAt      DateTime
   endsAt        DateTime
@@ -730,7 +742,7 @@ model Notification {
 model Task {
   id        String    @id @default(cuid())
   userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Restrict)
   title     String
   priority  Priority  @default(MEDIUM)
   dueDate   DateTime?
@@ -746,9 +758,9 @@ model Task {
 model Incident {
   id          String         @id @default(cuid())
   reporterId  String?
-  reporter    User?          @relation("IncidentReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  reporter    User?          @relation("IncidentReporter", fields: [reporterId], references: [id], onDelete: Restrict)
   assigneeId  String?
-  assignee    User?          @relation("IncidentAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  assignee    User?          @relation("IncidentAssignee", fields: [assigneeId], references: [id], onDelete: Restrict)
   title       String
   description String
   severity    Priority       @default(MEDIUM)
@@ -775,7 +787,7 @@ model AuditLog {
   before   Json?
   after    Json?
   ip       String?
-  prevHash String?
+  prevHash String?  @unique
   hash     String   @unique
 
   @@index([entity, entityId])

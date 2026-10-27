@@ -29,7 +29,10 @@ export default function setup(): void {
 
   process.env.DATABASE_URL = testUrl;
 
-  // Env passed explicitly so the child process sees it on Windows too.
+  // Env passed explicitly so the child process sees it on Windows too. This
+  // forwards PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION if the *user* set it
+  // in their own shell (Prisma's AI-agent guard); it is deliberately never
+  // hard-coded here, so consent stays a per-invocation human decision.
   execSync('pnpm exec prisma migrate reset --force --skip-seed --skip-generate', {
     cwd: root,
     stdio: 'inherit',

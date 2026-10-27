@@ -9,6 +9,14 @@ import { db } from '@/server/db';
  * `prevHash` is the previous row's hash (by `seq`) and `''` for the first row.
  * Writers serialize on a transaction-scoped advisory lock, so the chain order
  * (`seq`) always matches the hash order, even under concurrency.
+ *
+ * REQUIRES READ COMMITTED (Postgres' default) on the calling transaction: the
+ * "read last hash" query must see rows committed by the writer that held the
+ * lock just before us. Under REPEATABLE READ / SERIALIZABLE the snapshot is
+ * taken at the first statement (the lock), so a waiter would read a stale tail
+ * and fork the chain. `prevHash @unique` makes such a fork fail loudly instead
+ * of silently corrupting the chain. (Postgres treats NULLs as distinct, so this
+ * does not guard a second genesis row; the lock does.)
  */
 
 /** Advisory lock key that serializes audit writers. */

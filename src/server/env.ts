@@ -39,6 +39,5 @@ export const env: Env = new Proxy({} as Env, {
   get: (_target, prop) => getEnv()[prop as keyof Env],
   has: (_target, prop) => prop in getEnv(),
   ownKeys: () => Reflect.ownKeys(getEnv()),
-  getOwnPropertyDescriptor: (_target, prop) =>
-    Object.getOwnPropertyDescriptor(getEnv(), prop),
+  getOwnPropertyDescriptor: (_target, prop) => Object.getOwnPropertyDescriptor(getEnv(), prop),
 });
