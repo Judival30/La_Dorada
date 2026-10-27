@@ -39,8 +39,34 @@ describe('ndaState', () => {
     expect(ndaState(validNda, now)).toBe('SIGNED');
   });
 
-  it('returns SIGNED when signed with no expiry', () => {
-    expect(ndaState({ signedAt: past, expiresAt: null }, now)).toBe('SIGNED');
+  it('returns EXPIRED when expiresAt is missing at runtime (fail closed)', () => {
+    const noExpiry = { signedAt: past, expiresAt: null } as unknown as NdaInfo;
+    expect(ndaState(noExpiry, now)).toBe('EXPIRED');
+  });
+
+  it('returns PENDING when signedAt is in the future', () => {
+    const later = new Date(now.getTime() + 1);
+    expect(ndaState({ signedAt: later, expiresAt: future }, now)).toBe('PENDING');
+  });
+
+  it('returns SIGNED when signedAt equals now', () => {
+    expect(ndaState({ signedAt: new Date(now.getTime()), expiresAt: future }, now)).toBe('SIGNED');
+  });
+
+  it('returns EXPIRED when signedAt equals expiresAt (invalid window)', () => {
+    expect(ndaState({ signedAt: past, expiresAt: new Date(past.getTime()) }, now)).toBe('EXPIRED');
+  });
+
+  it('returns EXPIRED when signedAt is after expiresAt (invalid window)', () => {
+    const exp = new Date(past.getTime() - 1);
+    expect(ndaState({ signedAt: past, expiresAt: exp }, now)).toBe('EXPIRED');
+  });
+
+  it('never returns SIGNED for an inverted window that is still in the future', () => {
+    const signed = new Date(now.getTime() - 10);
+    const exp = new Date(now.getTime() - 20);
+    expect(ndaState({ signedAt: signed, expiresAt: exp }, now)).toBe('EXPIRED');
+    expect(ndaState({ signedAt: future, expiresAt: past }, now)).toBe('EXPIRED');
   });
 
   it('returns EXPIRED when expiresAt equals now (boundary)', () => {
@@ -71,10 +97,28 @@ describe('canAccessConfidential', () => {
     expect(canAccessConfidential(ctx)).toBe(true);
   });
 
-  it('grants access when the NDA has no expiry', () => {
+  it('denies access when the NDA has no expiry (fail closed)', () => {
     const ctx = baseCtx();
-    ctx.nda = { signedAt: past, expiresAt: null };
-    expect(canAccessConfidential(ctx)).toBe(true);
+    ctx.nda = { signedAt: past, expiresAt: null } as unknown as NdaInfo;
+    expect(canAccessConfidential(ctx)).toBe(false);
+  });
+
+  it('denies access when the NDA is signed in the future', () => {
+    const ctx = baseCtx();
+    ctx.nda = { signedAt: new Date(now.getTime() + 1), expiresAt: future };
+    expect(canAccessConfidential(ctx)).toBe(false);
+  });
+
+  it('denies access when signedAt equals expiresAt', () => {
+    const ctx = baseCtx();
+    ctx.nda = { signedAt: future, expiresAt: new Date(future.getTime()) };
+    expect(canAccessConfidential(ctx)).toBe(false);
+  });
+
+  it('denies access when signedAt is after expiresAt', () => {
+    const ctx = baseCtx();
+    ctx.nda = { signedAt: past, expiresAt: new Date(past.getTime() - 1) };
+    expect(canAccessConfidential(ctx)).toBe(false);
   });
 
   it('denies a BLOCKED user', () => {

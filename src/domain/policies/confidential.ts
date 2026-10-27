@@ -4,7 +4,8 @@ import type { OpportunityStatus } from '@/domain/machines/opportunity';
 import type { AccessStatus } from '@/domain/machines/access';
 import { isPartyConflict } from '@/domain/policies/parties';
 
-export type NdaInfo = { signedAt: Date | null; expiresAt: Date | null };
+/** Mirrors `NdaSignature` (`expiresAt` is NOT NULL); `signedAt: null` means not yet signed. */
+export type NdaInfo = { signedAt: Date | null; expiresAt: Date };
 export type NdaState = 'PENDING' | 'SIGNED' | 'EXPIRED';
 
 export type ConfidentialAccessContext = {
@@ -19,13 +20,22 @@ export type ConfidentialAccessContext = {
 const CONFIDENTIAL_VISIBLE_STATUSES: readonly OpportunityStatus[] = ['PUBLISHED', 'CLOSED'];
 
 /**
- * NDA state at `now`. Unsigned (or missing) is `PENDING`; no expiry means `SIGNED`;
- * `expiresAt <= now` is `EXPIRED` (the boundary instant counts as expired).
+ * NDA state at `now` (spec §6: `signedAt != null && expiresAt > now`). Fails closed:
+ * - missing NDA or `signedAt` → `PENDING`;
+ * - missing `expiresAt` or an invalid window (`signedAt >= expiresAt`) → `EXPIRED`;
+ * - `signedAt > now` (signed in the future) → `PENDING`;
+ * - `expiresAt <= now` → `EXPIRED` (the boundary instant counts as expired);
+ * - otherwise `SIGNED`.
  */
 export function ndaState(nda: NdaInfo | null, now: Date): NdaState {
-  if (nda === null || nda.signedAt === null) return 'PENDING';
-  if (nda.expiresAt === null) return 'SIGNED';
-  return nda.expiresAt.getTime() <= now.getTime() ? 'EXPIRED' : 'SIGNED';
+  if (!nda?.signedAt) return 'PENDING';
+  // Defensive: the type says non-null, but untyped callers must never fail open.
+  if (!(nda.expiresAt instanceof Date)) return 'EXPIRED';
+  const signed = nda.signedAt.getTime();
+  const expires = nda.expiresAt.getTime();
+  if (signed >= expires) return 'EXPIRED';
+  if (signed > now.getTime()) return 'PENDING';
+  return expires > now.getTime() ? 'SIGNED' : 'EXPIRED';
 }
 
 /**
