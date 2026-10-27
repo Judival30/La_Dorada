@@ -5,15 +5,16 @@
  */
 export type RateLimiter = { take(key: string, now?: number): boolean };
 
-/** Above this many tracked keys, stale entries are swept on the next `take`. */
-const SWEEP_THRESHOLD = 10_000;
-
 export function createRateLimiter(o: { capacity: number; windowMs: number }): RateLimiter & {
   reset(): void;
 } {
   const hits = new Map<string, number[]>();
+  let lastSweep = 0;
 
+  /** Drops keys with no hit inside the window. Runs at most once per window. */
   const sweep = (now: number) => {
+    if (now - lastSweep < o.windowMs) return;
+    lastSweep = now;
     for (const [key, times] of hits) {
       const last = times[times.length - 1];
       if (last === undefined || now - last >= o.windowMs) hits.delete(key);
@@ -22,7 +23,7 @@ export function createRateLimiter(o: { capacity: number; windowMs: number }): Ra
 
   return {
     take(key: string, now: number = Date.now()): boolean {
-      if (hits.size > SWEEP_THRESHOLD) sweep(now);
+      sweep(now);
       const recent = (hits.get(key) ?? []).filter((t) => now - t < o.windowMs);
       if (recent.length >= o.capacity) {
         hits.set(key, recent);
@@ -34,14 +35,19 @@ export function createRateLimiter(o: { capacity: number; windowMs: number }): Ra
     },
     reset(): void {
       hits.clear();
+      lastSweep = 0;
     },
   };
 }
 
-/** Login limiter: 5 attempts per minute per `${ip}:${email}` (successful ones count too). */
+/** 5 attempts per minute per `${ip}:${email}` (successful attempts count too). */
 export const loginLimiter = createRateLimiter({ capacity: 5, windowMs: 60_000 });
 
-/** Test helper: forgets every recorded login attempt. */
+/** 20 attempts per 15 minutes per email, whatever the IP (distributed guessing). */
+export const loginEmailLimiter = createRateLimiter({ capacity: 20, windowMs: 15 * 60_000 });
+
+/** Test helper: forgets every recorded login attempt in both buckets. */
 export function resetLoginLimiter(): void {
   loginLimiter.reset();
+  loginEmailLimiter.reset();
 }

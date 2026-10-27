@@ -17,7 +17,7 @@ const entry = (n: number) => ({
 beforeAll(async () => {
   // Safety net: these tests wipe AuditLog, so never run them outside a test DB.
   const [row] = await db.$queryRaw<{ current_database: string }[]>`SELECT current_database()`;
-  expect(row?.current_database).toMatch(/test/i);
+  expect(row?.current_database).toMatch(/_test$/);
 });
 
 beforeEach(async () => {

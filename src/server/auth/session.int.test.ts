@@ -10,7 +10,7 @@ const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 
 beforeAll(async () => {
   const [row] = await db.$queryRaw<{ current_database: string }[]>`SELECT current_database()`;
-  expect(row?.current_database).toMatch(/test/i);
+  expect(row?.current_database).toMatch(/_test$/);
 
   const user = await db.user.create({
     data: {
@@ -61,13 +61,14 @@ describe('sessions', () => {
     expect(await validateSession(tampered)).toBeNull();
   });
 
-  it('returns null for an expired session', async () => {
+  it('returns null for an expired session and deletes its row', async () => {
     const { token } = await createSession(userId);
     await db.session.update({
       where: { tokenHash: sha256(token) },
       data: { expiresAt: new Date(Date.now() - 1000) },
     });
     expect(await validateSession(token)).toBeNull();
+    expect(await db.session.count({ where: { tokenHash: sha256(token) } })).toBe(0);
   });
 
   it('slides the expiration when less than 3.5 days remain', async () => {

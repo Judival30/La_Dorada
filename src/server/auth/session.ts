@@ -57,14 +57,20 @@ export async function createSession(
   return { token, expiresAt };
 }
 
+export type ValidatedSession = {
+  user: SessionUser;
+  sessionId: string;
+  expiresAt: Date;
+  /** True when this call slid the expiration forward. */
+  extended: boolean;
+};
+
 /**
  * Resolves a token to its user. Unknown or expired tokens yield `null` (an
  * expired row is deleted). When fewer than 3.5 days remain, the expiration is
- * extended to now + SESSION_TTL_DAYS.
+ * extended to now + SESSION_TTL_DAYS and `extended` is true.
  */
-export async function validateSession(
-  token: string,
-): Promise<{ user: SessionUser; sessionId: string } | null> {
+export async function validateSessionDetailed(token: string): Promise<ValidatedSession | null> {
   if (!token) return null;
   const session = await db.session.findUnique({
     where: { tokenHash: hashToken(token) },
@@ -80,16 +86,33 @@ export async function validateSession(
     return null;
   }
   if (session.expiresAt.getTime() - now < SLIDE_THRESHOLD_MS) {
-    await db.session.update({
-      where: { id: session.id },
-      data: { expiresAt: new Date(now + ttlMs()) },
-    });
+    const expiresAt = new Date(now + ttlMs());
+    await db.session.update({ where: { id: session.id }, data: { expiresAt } });
+    return { user: session.user, sessionId: session.id, expiresAt, extended: true };
   }
-  return { user: session.user, sessionId: session.id };
+  return {
+    user: session.user,
+    sessionId: session.id,
+    expiresAt: session.expiresAt,
+    extended: false,
+  };
+}
+
+/** Brief signature of `validateSessionDetailed`. */
+export async function validateSession(
+  token: string,
+): Promise<{ user: SessionUser; sessionId: string } | null> {
+  const s = await validateSessionDetailed(token);
+  return s && { user: s.user, sessionId: s.sessionId };
 }
 
 export async function invalidateSession(sessionId: string): Promise<void> {
   await db.session.deleteMany({ where: { id: sessionId } });
+}
+
+/** Deletes the session a raw token belongs to, if any (logout). */
+export async function invalidateSessionByToken(token: string): Promise<void> {
+  await db.session.deleteMany({ where: { tokenHash: hashToken(token) } });
 }
 
 /** Logs a user out everywhere (e.g. when the user is blocked). */

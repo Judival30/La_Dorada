@@ -20,7 +20,7 @@ const ids = {} as {
 
 beforeAll(async () => {
   const [row] = await db.$queryRaw<{ current_database: string }[]>`SELECT current_database()`;
-  expect(row?.current_database).toMatch(/test/i);
+  expect(row?.current_database).toMatch(/_test$/);
 
   const org = await db.organization.create({
     data: { name: `Empresa Demo ${tag}`, nit: `900.${tag}`, kind: 'COMPANY' },

@@ -1,21 +1,20 @@
 'use server';
 
-import { randomBytes } from 'node:crypto';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { writeAudit } from '@/server/audit/audit';
 import { db } from '@/server/db';
 import { homePathFor } from './guard';
-import { hashPassword, verifyPassword } from './password';
-import { loginLimiter } from './rate-limit';
+import { verifyPassword } from './password';
+import { loginEmailLimiter, loginLimiter } from './rate-limit';
+import { safeNext } from './safe-next';
 import {
   SESSION_COOKIE,
   createSession,
   deleteSessionCookie,
-  invalidateSession,
+  invalidateSessionByToken,
   setSessionCookie,
-  validateSession,
 } from './session';
 
 export type LoginState = { error?: string };
@@ -29,21 +28,28 @@ const loginSchema = z.object({
   next: z.string().optional(),
 });
 
-/** Hash checked when the email is unknown, so both failure paths cost the same. */
-let dummyHash: Promise<string> | undefined;
-const getDummyHash = () => (dummyHash ??= hashPassword(randomBytes(16).toString('hex')));
+/**
+ * Argon2id hash (library default params, m=19456,t=2,p=1) of a throwaway value.
+ * Verified when the email is unknown so both failure paths cost the same.
+ */
+const DUMMY_HASH =
+  '$argon2id$v=19$m=19456,t=2,p=1$RtlAaIvBDPaLhdJPtiAfaQ$U0N5LJIkNflsaMnuK686abSmLxqkTPyJ800Kq+HMMqg';
 
+/**
+ * Client IP for rate limiting.
+ *
+ * TRUSTED-PROXY ASSUMPTION: the app runs behind exactly one reverse proxy that
+ * sets `x-real-ip` and/or appends the peer address to `x-forwarded-for`. Only
+ * that proxy-written value is used (`x-real-ip`, else the LAST XFF entry); the
+ * first XFF entries are client-controlled and trivially spoofed. Exposed
+ * directly to the internet without such a proxy, these headers are untrusted.
+ */
 async function clientIp(): Promise<string> {
-  const forwarded = (await headers()).get('x-forwarded-for');
-  return forwarded?.split(',')[0]?.trim() || '127.0.0.1';
-}
-
-/** Only same-origin absolute paths are accepted as post-login destinations. */
-function safeNext(next: string | undefined): string | null {
-  if (!next || !next.startsWith('/') || next.startsWith('//') || next.startsWith('/\\')) {
-    return null;
-  }
-  return next;
+  const h = await headers();
+  const realIp = h.get('x-real-ip')?.trim();
+  if (realIp) return realIp;
+  const last = h.get('x-forwarded-for')?.split(',').at(-1)?.trim();
+  return last || '127.0.0.1';
 }
 
 export async function loginAction(_prev: LoginState, form: FormData): Promise<LoginState> {
@@ -56,23 +62,27 @@ export async function loginAction(_prev: LoginState, form: FormData): Promise<Lo
   const { email, password, next } = parsed.data;
 
   const ip = await clientIp();
-  // Counted before the password check, successful attempts included.
-  if (!loginLimiter.take(`${ip}:${email}`)) return { error: RATE_LIMITED_ERROR };
+  // Both buckets are checked before the password; successful attempts count too.
+  if (!loginLimiter.take(`${ip}:${email}`) || !loginEmailLimiter.take(email)) {
+    return { error: RATE_LIMITED_ERROR };
+  }
 
   const user = await db.user.findUnique({
     where: { email },
     select: { id: true, role: true, passwordHash: true },
   });
-  const ok = await verifyPassword(user?.passwordHash ?? (await getDummyHash()), password);
+  const ok = await verifyPassword(user?.passwordHash ?? DUMMY_HASH, password);
 
   if (!user || !ok) {
+    // Data minimization (Ley 1581): the append-only log never stores the typed
+    // email. The actor is unauthenticated, so actorId is always null.
     await db.$transaction((tx) =>
       writeAudit(tx, {
-        actorId: user?.id ?? null,
+        actorId: null,
         action: 'LOGIN_FAILED',
         entity: 'User',
         entityId: user?.id ?? 'unknown',
-        after: { email, reason: user ? 'BAD_PASSWORD' : 'UNKNOWN_EMAIL' },
+        after: { reason: user ? 'BAD_PASSWORD' : 'UNKNOWN_EMAIL' },
         ip,
       }),
     );
@@ -99,10 +109,7 @@ export async function loginAction(_prev: LoginState, form: FormData): Promise<Lo
 
 export async function logoutAction(): Promise<void> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (token) {
-    const session = await validateSession(token);
-    if (session) await invalidateSession(session.sessionId);
-  }
+  if (token) await invalidateSessionByToken(token);
   await deleteSessionCookie();
   redirect('/login');
 }
