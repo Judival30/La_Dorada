@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { Logo } from '@/components/ld/logo';
 import { Ridge } from '@/components/ld/ridge';
 import { getCurrentUser, homePathFor } from '@/server/auth/guard';
+import { getDemoAccounts } from '@/server/demo-accounts';
 import { LoginForm } from './login-form';
 
 export const metadata: Metadata = { title: 'Entrar' };
@@ -39,7 +40,7 @@ export default async function LoginPage({ searchParams }: Props) {
         <div className="w-full max-w-sm">
           <h1 className="ld-h1">Entra a La Dorada</h1>
           <p className="mt-1 mb-7 text-ld-muted">Usa el correo con el que te registraste.</p>
-          <LoginForm next={nextPath} showDemo={process.env.NODE_ENV !== 'production'} />
+          <LoginForm next={nextPath} demoAccounts={getDemoAccounts()} />
           <p className="ld-small mt-8">
             <Link href="/" className="font-medium text-ld-primary underline underline-offset-4">
               Volver al inicio

@@ -8,11 +8,10 @@ export const metadata: Metadata = { title: 'Inicio de Back Office' };
 
 export default async function BackofficeHomePage() {
   const user = await requireUser('BACKOFFICE');
-  const firstName = user.name.split(' ')[0];
   return (
     <>
       <PageHeader
-        title={`Hola, ${firstName}`}
+        title={`Hola, ${user.name}`}
         description="Revisa usuarios y empresas, y supervisa los procesos en curso."
       />
       <EmptyState

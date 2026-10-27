@@ -4,24 +4,17 @@ import { CircleAlert } from 'lucide-react';
 import { useActionState, useRef } from 'react';
 import { loginAction, type LoginState } from '@/server/auth/actions';
 
-const DEMO_ACCOUNTS = [
-  { label: 'Comprador', email: 'comprador@demo.ladorada.co' },
-  { label: 'Vendedor', email: 'vendedor@demo.ladorada.co' },
-  { label: 'Back Office', email: 'admin@demo.ladorada.co' },
-] as const;
+type DemoAccount = { label: string; email: string; password: string };
+type LoginFormProps = { next?: string; demoAccounts?: DemoAccount[] };
 
-const DEMO_PASSWORD = 'LaDorada2026!';
-
-type LoginFormProps = { next?: string; showDemo: boolean };
-
-export function LoginForm({ next, showDemo }: LoginFormProps) {
+export function LoginForm({ next, demoAccounts }: LoginFormProps) {
   const [state, action, pending] = useActionState<LoginState, FormData>(loginAction, {});
   const email = useRef<HTMLInputElement>(null);
   const password = useRef<HTMLInputElement>(null);
 
-  function fillDemo(address: string) {
-    if (email.current) email.current.value = address;
-    if (password.current) password.current.value = DEMO_PASSWORD;
+  function fillDemo(account: DemoAccount) {
+    if (email.current) email.current.value = account.email;
+    if (password.current) password.current.value = account.password;
     password.current?.focus();
   }
 
@@ -69,9 +62,7 @@ export function LoginForm({ next, showDemo }: LoginFormProps) {
         {state.error ? (
           <p className="ld-small flex items-start gap-2 rounded-[var(--ld-radius-control)] bg-[var(--ld-danger-soft)] px-3 py-2.5 font-medium text-[var(--ld-danger-ink)]">
             <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-            <span>
-              {state.error} Revisa los datos e intenta de nuevo.
-            </span>
+            <span>{state.error}</span>
           </p>
         ) : null}
       </div>
@@ -80,15 +71,15 @@ export function LoginForm({ next, showDemo }: LoginFormProps) {
         {pending ? 'Entrando…' : 'Entrar'}
       </button>
 
-      {showDemo ? (
+      {demoAccounts ? (
         <div className="border-t border-ld-border pt-5">
           <p className="ld-small text-ld-muted">Para probar la demostración, completa los datos con una cuenta:</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            {DEMO_ACCOUNTS.map((a) => (
+            {demoAccounts.map((a) => (
               <button
                 key={a.email}
                 type="button"
-                onClick={() => fillDemo(a.email)}
+                onClick={() => fillDemo(a)}
                 className="ld-btn ld-btn-quiet min-h-10 px-3"
               >
                 {a.label}
