@@ -34,8 +34,8 @@ Interfaz y datos de demo en español de Colombia; moneda COP con formato `COP 12
 
 - Next.js 15 (App Router) + TypeScript estricto + Tailwind CSS + shadcn/ui; pnpm.
 - PostgreSQL 16 + Prisma (migraciones versionadas).
-- MinIO (S3-compatible) con bucket privado; descargas solo por URL prefirmada.
-- Docker Compose: `app`, `db`, `minio`, `mailpit`.
+- RustFS (S3-compatible) con bucket privado; descargas solo por URL prefirmada.
+- Docker Compose: `app`, `db`, `s3`, `mailpit`.
 - Vitest (unidad/integración), Playwright (E2E), GitHub Actions (lint, typecheck, test, build).
 
 ### 3.1 Capas
@@ -181,8 +181,8 @@ canAccessConfidential(user, opp, access, nda, now) =
   && nda?.signedAt != null && nda.expiresAt > now
 ```
 - El vendedor dueño y el Back Office (rol supervisor, solo lectura de metadatos y auditoría) tienen su propia política `canManageDataRoom` / `canSuperviseDataRoom`.
-- Aplicación: (a) repos de documentos filtran por la política; (b) serializador de teaser omite toda sección con `inTeaser=false`; (c) `GET /api/documents/:id/download` re-evalúa la política, registra `DOCUMENT_DOWNLOADED` (o `ACCESS_DENIED`) en `AuditLog` y responde 302 a una URL prefirmada de 60 s; (d) el bucket MinIO no tiene política pública.
-- Test de aceptación: comprador sin NDA o sin autorización recibe 403 en el endpoint, la URL directa a MinIO sin firma devuelve 403, y queda registro en auditoría.
+- Aplicación: (a) repos de documentos filtran por la política; (b) serializador de teaser omite toda sección con `inTeaser=false`; (c) `GET /api/documents/:id/download` re-evalúa la política, registra `DOCUMENT_DOWNLOADED` (o `ACCESS_DENIED`) en `AuditLog` y responde 302 a una URL prefirmada de 60 s; (d) el bucket RustFS no tiene política pública.
+- Test de aceptación: comprador sin NDA o sin autorización recibe 403 en el endpoint, la URL directa a RustFS sin firma devuelve 403, y queda registro en auditoría.
 
 ## 7. Valoración y score (R3; ADR-005)
 
@@ -246,7 +246,7 @@ Detalle en `docs/design-system.md` (se escribe con la skill `frontend-design`). 
 - Cuentas: `comprador@demo.ladorada.co`, `vendedor@demo.ladorada.co`, `admin@demo.ladorada.co` (contraseña documentada en README), más ~10 usuarios ficticios en distintos estados.
 - 15 empresas ficticias (nombres inventados, NIT ficticios con prefijo 900.000) en agroindustria, alimentos y bebidas, logística, fintech, manufactura, tecnología, salud, retail, construcción y energía, en Antioquia, Valle del Cauca, Bogotá, Atlántico, Santander, Risaralda, etc.; mezcla de estados (borrador, en revisión, publicada, suspendida) y 4 tipos de oportunidad. Imágenes de teaser generadas localmente (ilustraciones SVG por sector) para no depender de terceros.
 - Procesos sembrados en distintas etapas para que H5, H13, H14 y H15 muestren datos.
-- `pnpm demo:reset` = drop + migrate + seed + carga de archivos de ejemplo a MinIO.
+- `pnpm demo:reset` = drop + migrate + seed + carga de archivos de ejemplo a RustFS.
 
 ## 11. Pruebas
 
@@ -266,4 +266,4 @@ Pagos o custodia de dinero, integraciones reales de KYC/firma/video, asesoría f
 ## 14. Riesgos
 
 - Repo dentro de OneDrive: artefactos ignorados; si la sincronización degrada el rendimiento se propone pausarla o mover el repo.
-- Docker Desktop requerido para db, MinIO y E2E.
+- Docker Desktop requerido para db, RustFS y E2E.

@@ -8,8 +8,8 @@ Documento de referencia de la arquitectura. Las decisiones de fondo están en `d
 
 - Next.js 15 (App Router) + TypeScript estricto + Tailwind CSS + shadcn/ui; pnpm.
 - PostgreSQL 16 + Prisma (migraciones versionadas).
-- MinIO (S3-compatible) con bucket privado; descargas solo por URL prefirmada.
-- Docker Compose: `app`, `db`, `minio`, `mailpit`.
+- RustFS (S3-compatible) con bucket privado; descargas solo por URL prefirmada.
+- Docker Compose: `app`, `db`, `s3`, `mailpit`.
 - Vitest (unidad/integración), Playwright (E2E), GitHub Actions (lint, typecheck, test, build).
 
 ```
@@ -116,3 +116,10 @@ Múltiplos iniciales (parametrizables, ilustrativos): agroindustria 5–7×, ali
 | Riesgos | 15 % | promedio de dependencia de clientes y contingencias legales (Bajo 100, Medio 60, Alto 20, Por aclarar 40) |
 
 El Back Office ve el cálculo desglosado; el comprador ve rango, score y aviso "Orientativo…". Nota: el valor del pitch (COP 180.000–320.000 M para ingresos de COP 12.000 M) es incoherente con los múltiplos; se registra en `docs/preguntas-abiertas.md` y manda la fórmula.
+
+## 4. Notas de implementación de M1
+
+- **Almacenamiento S3:** el servicio de Compose se llama `s3` y usa RustFS, no MinIO (ADR-008). La API S3 es la misma.
+- **`AuditLog` append-only:** la migración `20261027051410_audit_log_append_only` bloquea `UPDATE` y `DELETE` con un trigger. Su comentario de cabecera quedó desactualizado respecto al bloqueo de `TRUNCATE`, pero no se edita porque cambiaría su checksum en bases ya migradas. `TRUNCATE` queda bloqueado por la migración posterior `20261027060000_audit_log_block_truncate`.
+- **Migraciones en Docker:** el servicio one-shot `migrate` (etapa `builder`, con dependencias de desarrollo) ejecuta `prisma migrate deploy`; `app` arranca solo cuando termina con éxito (la imagen de producción no incluye el CLI de Prisma).
+- **Resets de BD:** ver ADR-009.

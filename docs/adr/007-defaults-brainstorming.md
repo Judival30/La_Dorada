@@ -11,7 +11,7 @@ Durante el brainstorming se fijaron valores por defecto para no bloquear la impl
 
 | Tema | Default | Fuente |
 |---|---|---|
-| Ejecución local | Docker Compose para `app`, `db`, `minio` y `mailpit` | spec §3 |
+| Ejecución local | Docker Compose para `app`, `db`, `s3` y `mailpit` | spec §3 |
 | Despliegue | Docker como base y guía para Vercel o Railway | Decisión del usuario (brief); la spec no la detalla |
 | Firma NDA/LOI | Simulada con sello de tiempo + SHA-256 del PDF + IP + user agent | spec §3.3 |
 | Videollamada | Enlace Jitsi `https://meet.jit.si/ladorada-<uuid>` | spec §3.3 |

@@ -14,8 +14,8 @@ Monolito Next.js modular, decisión del usuario (spec §3).
 - Next.js 15 (App Router), TypeScript estricto, Tailwind CSS y shadcn/ui.
 - Gestor de paquetes pnpm; Node 24.
 - PostgreSQL 16 con Prisma 6 y migraciones versionadas.
-- MinIO (S3-compatible) con bucket privado.
-- Docker Compose con los servicios `app`, `db`, `minio` y `mailpit`.
+- RustFS (S3-compatible) con bucket privado.
+- Docker Compose con los servicios `app`, `db`, `s3` y `mailpit`.
 - Vitest (unidad e integración), Playwright (E2E) y GitHub Actions (lint, typecheck, test, build).
 - Capas: `src/domain` (puro, sin I/O), `src/server` (I/O), `src/app` (rutas), `src/components`, `prisma/`, `e2e/` y `docs/` (spec §3.1).
 - Orden de trabajo: esqueleto primero (M1 Fundaciones) y luego historias por milestone (spec §12).
