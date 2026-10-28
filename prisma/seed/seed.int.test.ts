@@ -3,10 +3,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { NDA_TEXT } from '@/content/nda';
 import { DATA_ROOM_FOLDERS, EVALUATION_ITEM_KINDS, toScoreInput } from '@/domain/evaluation';
 import { toTeaser } from '@/domain/teaser';
+import type { Sector } from '@/domain/sectors';
 import {
-  DEFAULT_SECTOR_MULTIPLES,
   computeScore,
   valuationRange,
+  type ScoreWeights,
+  type SectorMultiples,
 } from '@/domain/valuation';
 import { INFO_SECTIONS } from '@/domain/visibility';
 import { resolveTeaserImage } from '@/server/opportunities/teaser-image';
@@ -195,6 +197,10 @@ describe('seed demo journey', () => {
   });
 
   it('evaluates PUBLISHED and SUSPENDED with valuationRange and a 0-100 score; IN_REVIEW has none', async () => {
+    const multiples = (await db.setting.findUniqueOrThrow({ where: { key: 'sectorMultiples' } }))
+      .value as unknown as Record<Sector, SectorMultiples>;
+    const weights = (await db.setting.findUniqueOrThrow({ where: { key: 'scoreWeights' } }))
+      .value as unknown as ScoreWeights;
     const opps = await db.opportunity.findMany({
       include: {
         company: { include: { financialYears: true } },
@@ -210,20 +216,21 @@ describe('seed demo journey', () => {
         expect(e!.score).toBeLessThanOrEqual(100);
         expect(e!.docsDelivered).toBe(REQUIRED);
         expect(e!.docsRequired).toBe(REQUIRED);
+        const sorted = [...o.company.financialYears].sort((a, b) => a.year - b.year);
         const input = toScoreInput({
           items: e!.items,
           foldersDelivered: e!.docsDelivered,
           foldersRequired: e!.docsRequired,
-          financials: o.company.financialYears,
+          financials: sorted,
         });
-        const last = [...o.company.financialYears].sort((a, b) => b.year - a.year)[0]!;
+        const last = sorted[sorted.length - 1]!;
         const range = valuationRange(
           { revenue: last.revenue, ebitda: last.ebitda, cagr3y: input.cagr3y },
-          DEFAULT_SECTOR_MULTIPLES[o.company.sector],
+          multiples[o.company.sector],
         );
         expect(e!.valuationLow).toBe(range.low);
         expect(e!.valuationHigh).toBe(range.high);
-        expect(e!.score).toBe(computeScore(input).total);
+        expect(e!.score).toBe(computeScore(input, weights).total);
       } else {
         expect(o.evaluation, o.title).toBeNull();
       }
@@ -269,10 +276,26 @@ describe('seed demo journey', () => {
       });
       const text = JSON.stringify(teaser).toLowerCase();
       expect(text, o.title).not.toContain(o.company.organization.name.toLowerCase());
-      // The department may appear (Bogotá D.C. is both), so ignore it when checking the city.
-      const withoutDepartment = text.replaceAll(o.company.department.toLowerCase(), '');
-      expect(withoutDepartment, o.title).not.toContain(o.company.city.toLowerCase());
-      expect(text, o.title).not.toContain(o.company.organization.nit.replace(/\D/g, '').slice(0, 9));
+      // City: checked on the teaser's own texts (title + sections). The top-level
+      // `department` field is not part of these, so a city equal to a department
+      // (Bogotá) needs no special case.
+      const texts = [
+        teaser.title,
+        ...Object.values(teaser.sections).flatMap((s) => [
+          s.title,
+          s.text ?? '',
+          ...s.fields.flatMap((f) => [f.label, f.value]),
+        ]),
+      ]
+        .join('\n')
+        .toLowerCase();
+      expect(texts, o.title).not.toContain(o.company.city.toLowerCase());
+      // NIT: formatted form and the 9 base digits (any separators stripped).
+      const nit = o.company.organization.nit;
+      expect(JSON.stringify(teaser), o.title).not.toContain(nit);
+      const base = nit.replace(/\D/g, '').slice(0, 9);
+      expect(base).toHaveLength(9);
+      expect(JSON.stringify(teaser).replace(/\D/g, ''), o.title).not.toContain(base);
       // P5: the stored texts are anonymous at the source, not only after scrubbing.
       for (const raw of [o.objective, o.company.description]) {
         expect(raw, o.title).not.toContain(o.company.city);

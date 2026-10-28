@@ -247,12 +247,14 @@ export async function seed(db: PrismaClient): Promise<SeedSummary> {
         if (!companyId || !sellerId) throw new Error(`Seed inconsistency for ${c.slug}`);
         const last = c.financials[c.financials.length - 1];
         const base = last && last.ebitda > 0 ? last.ebitda * 5 : (last?.revenue ?? 1000);
+        const objective = SEED_OBJECTIVES[c.slug];
+        if (!objective) throw new Error(`Seed inconsistency: no anonymous objective for ${c.slug}`);
         const published = c.status === 'PUBLISHED' || c.status === 'SUSPENDED';
         const data = {
           sellerId,
           title: `Proyecto ${CODENAMES[i % CODENAMES.length]}`,
           type: c.opportunityType,
-          objective: SEED_OBJECTIVES[c.slug] ?? c.description,
+          objective: objective,
           dealSizeMin: millions(Math.round(base * 0.8)),
           dealSizeMax: millions(Math.round(base * 1.2)),
           horizon: '6 a 12 meses',
