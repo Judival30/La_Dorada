@@ -61,6 +61,8 @@ export type OnboardingView = {
   progress: ReturnType<typeof onboardingProgress>;
   correctionNotes: string | null;
   rejectionReason: string | null;
+  /** Why Back Office blocked the account (BLOCKED only). */
+  blockedReason: string | null;
   submittedAt: Date | null;
 };
 
@@ -142,7 +144,12 @@ async function deleteObjectQuietly(key: string, reason: string): Promise<void> {
 export async function getOnboardingState(userId: string): Promise<OnboardingView> {
   const user = await db.user.findUnique({
     where: { id: userId },
-    select: { role: true, status: true, buyerPreferences: { select: { id: true } } },
+    select: {
+      role: true,
+      status: true,
+      blockedReason: true,
+      buyerPreferences: { select: { id: true } },
+    },
   });
   if (!user) throw new NotFoundError('User not found');
   const role = onboardingRole(user.role);
@@ -179,6 +186,7 @@ export async function getOnboardingState(userId: string): Promise<OnboardingView
     progress: onboardingProgress(snapshot),
     correctionNotes: vc.correctionNotes,
     rejectionReason: vc.rejectionReason,
+    blockedReason: user.blockedReason,
     submittedAt: vc.submittedAt,
   };
 }

@@ -102,6 +102,9 @@ export type UserReviewDetail = {
     status: UserStatus;
     organizationName: string | null;
     consentAt: Date | null;
+    /** Set while BLOCKED: shown to the reviewer, never written to the AuditLog. */
+    blockedReason: string | null;
+    blockedAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
   };
@@ -350,6 +353,8 @@ export async function getUserReview(actor: SessionUser, userId: string): Promise
       role: true,
       status: true,
       consentAt: true,
+      blockedReason: true,
+      blockedAt: true,
       createdAt: true,
       updatedAt: true,
       organization: { select: { name: true } },
@@ -431,6 +436,8 @@ export async function getUserReview(actor: SessionUser, userId: string): Promise
       status: user.status,
       organizationName: organizationNameOf(user.organization?.name, vc?.profile),
       consentAt: user.consentAt,
+      blockedReason: user.blockedReason,
+      blockedAt: user.blockedAt,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     },
@@ -751,7 +758,9 @@ export async function decideUser(
 
 /**
  * Blocks an ENABLED BUYER / SELLER (`userMachine` BLOCK). The reason (10–1000
- * characters) goes to the user's in-app notification only, never the audit.
+ * characters) is stored with the time in `User.blockedReason` / `blockedAt`
+ * (shown to the user and to Back Office) and sent in the in-app notification,
+ * never written to the audit.
  * Every session of the user is deleted inside the same transaction, so a
  * rollback keeps them and a commit logs the user out everywhere at once.
  */
@@ -762,7 +771,7 @@ export async function blockUser(actor: SessionUser, userId: string, reason: stri
   await changeBlockState(actor, userId, 'BLOCK', why);
 }
 
-/** Unblocks a BLOCKED BUYER / SELLER (`userMachine` UNBLOCK → ENABLED). */
+/** Unblocks a BLOCKED BUYER / SELLER (`userMachine` UNBLOCK → ENABLED), clearing the block reason. */
 export async function unblockUser(actor: SessionUser, userId: string): Promise<void> {
   assertBackoffice(actor);
   assertNotSelf(actor, userId);
@@ -784,7 +793,10 @@ async function changeBlockState(
     const next = userMachine.transition(user.status, event, actor.role);
     const updated = await tx.user.update({
       where: { id: userId },
-      data: { status: next },
+      data:
+        event === 'BLOCK'
+          ? { status: next, blockedReason: reason, blockedAt: new Date() }
+          : { status: next, blockedReason: null, blockedAt: null },
       select: { email: true, name: true },
     });
     if (event === 'BLOCK') await invalidateUserSessions(userId, { tx });

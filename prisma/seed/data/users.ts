@@ -13,6 +13,8 @@ export type SeedUser = {
     kind: 'COMPANY' | 'BUYER_ENTITY';
     buyerType?: 'FONDO' | 'ESTRATEGICO' | 'FAMILY_OFFICE' | 'ANGEL';
   } | null;
+  /** Only for BLOCKED accounts: the reason Back Office gave (ficticio). */
+  blockedReason?: string;
 };
 
 /** Contraseña compartida por todas las cuentas demo. Solo para datos de demostración. */
@@ -175,6 +177,8 @@ export const SEED_USERS: SeedUser[] = [
       nit: '900.305.005-5',
       kind: 'COMPANY',
     },
+    blockedReason:
+      'Recibimos un reporte sobre la titularidad de la empresa y la estamos verificando con los soportes.',
   },
 
   // Más solicitudes en revisión para la cola del Back Office.

@@ -76,6 +76,7 @@ export default async function OnboardingPage({ searchParams }: PageProps) {
       progress: { completedSteps: [], missing: [], canSubmit: false },
       correctionNotes: null,
       rejectionReason: null,
+      blockedReason: null,
       submittedAt: null,
     };
   }
@@ -100,7 +101,7 @@ export default async function OnboardingPage({ searchParams }: PageProps) {
     return (
       <div className="min-h-screen bg-ld-bg">
         <OnboardingHeader />
-        <BlockedView firstName={firstName} />
+        <BlockedView firstName={firstName} reason={view.blockedReason} />
       </div>
     );
   }

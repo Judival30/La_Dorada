@@ -105,7 +105,7 @@ export function RejectedView({ view, firstName }: { view: OnboardingView; firstN
   );
 }
 
-export function BlockedView({ firstName }: { firstName: string }) {
+export function BlockedView({ firstName, reason }: { firstName: string; reason: string | null }) {
   return (
     <main id="contenido" className="mx-auto max-w-2xl px-4 py-10 md:py-16">
       <p className="ld-small text-ld-muted">Hola, {firstName}</p>
@@ -118,14 +118,24 @@ export function BlockedView({ firstName }: { firstName: string }) {
           Tu cuenta está bloqueada
         </h1>
         <p className="mt-3 max-w-[60ch] text-ld-ink">
-          Bloqueamos el acceso mientras Back Office revisa tu caso. Para recuperarlo, escríbenos a{' '}
+          El equipo de La Dorada bloqueó tu cuenta. Mientras siga bloqueada no puedes usar la
+          plataforma.
+        </p>
+        <div className="mt-5 rounded-[var(--ld-radius-control)] border border-ld-border bg-ld-bg p-4">
+          <h2 className="ld-small font-semibold text-ld-navy">Motivo</h2>
+          <p className="mt-1 max-w-[60ch] whitespace-pre-line text-ld-ink">
+            {reason ?? 'No registramos un motivo. Escríbenos y te lo explicamos.'}
+          </p>
+        </div>
+        <p className="mt-5 max-w-[60ch] text-ld-ink">
+          Si tienes preguntas o crees que es un error, escríbenos a{' '}
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
             className="font-medium text-ld-primary underline underline-offset-4"
           >
             {SUPPORT_EMAIL}
-          </a>{' '}
-          o responde al correo de notificación y te diremos qué falta.
+          </a>
+          .
         </p>
       </section>
     </main>

@@ -97,7 +97,10 @@ function profileRows(detail: UserReviewDetail): [string, string][] {
     rows.push(['Sectores de interés', s4.sectors.map((s) => SECTOR_LABELS[s]).join(', ')]);
     rows.push(['Regiones de interés', s4.regions.join(', ')]);
     const fmt = (n: number) => n.toLocaleString('es-CO');
-    rows.push(['Ticket', `COP ${fmt(s4.ticketMinMillions)} M a COP ${fmt(s4.ticketMaxMillions)} M`]);
+    rows.push([
+      'Ticket',
+      `COP ${fmt(s4.ticketMinMillions)} M a COP ${fmt(s4.ticketMaxMillions)} M`,
+    ]);
   }
   rows.push([
     'Consentimiento de datos',
@@ -181,6 +184,18 @@ export default async function UserReviewPage({ params }: PageProps) {
           {c?.correctionNotes && user.status === 'CORRECTIONS_REQUESTED' ? (
             <Panel id="notas" title="Correcciones solicitadas">
               <p className="max-w-[68ch] whitespace-pre-line">{c.correctionNotes}</p>
+            </Panel>
+          ) : null}
+          {user.status === 'BLOCKED' ? (
+            <Panel id="bloqueo" title="Motivo del bloqueo">
+              <p className="max-w-[68ch] whitespace-pre-line">
+                {user.blockedReason ?? 'No hay un motivo registrado.'}
+              </p>
+              {user.blockedAt ? (
+                <p className="ld-small mt-2 text-ld-muted">
+                  Bloqueada el {formatDateTime(user.blockedAt)}
+                </p>
+              ) : null}
             </Panel>
           ) : null}
           {c?.rejectionReason && user.status === 'REJECTED' ? (

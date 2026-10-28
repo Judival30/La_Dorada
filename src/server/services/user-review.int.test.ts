@@ -20,7 +20,12 @@ import {
   createTestUser,
   type TestUser,
 } from '@/test/onboarding-fixtures';
-import { saveStep, submitForReview, uploadVerificationDocument } from './onboarding';
+import {
+  getOnboardingState,
+  saveStep,
+  submitForReview,
+  uploadVerificationDocument,
+} from './onboarding';
 import {
   blockUser,
   decideUser,
@@ -502,6 +507,30 @@ describe('blockUser / unblockUser', () => {
       1,
     );
     expect(mailer().sent.map((m) => m.subject)).toEqual(['Tu cuenta fue bloqueada']);
+  });
+
+  it('block stores the reason and time durably (never in the audit); unblock clears them', async () => {
+    const u = await createTestUser(tag, 'SELLER', 'ENABLED');
+    const before = Date.now();
+    await blockUser(bo, u.id, `  ${REASON}  `);
+
+    const row = await db.user.findUniqueOrThrow({ where: { id: u.id } });
+    expect(row.blockedReason).toBe(REASON);
+    expect(row.blockedAt?.getTime()).toBeGreaterThanOrEqual(before - 1000);
+    const a = await audits('USER_BLOCKED', u.id);
+    expect(JSON.stringify([a[0]?.before, a[0]?.after])).not.toContain('soportes');
+
+    const review = await getUserReview(bo, u.id);
+    expect(review.user).toMatchObject({ blockedReason: REASON, blockedAt: row.blockedAt });
+    expect((await getOnboardingState(u.id)).blockedReason).toBe(REASON);
+
+    await unblockUser(bo, u.id);
+    const cleared = await db.user.findUniqueOrThrow({ where: { id: u.id } });
+    expect(cleared).toMatchObject({ status: 'ENABLED', blockedReason: null, blockedAt: null });
+    expect((await getUserReview(bo, u.id)).user).toMatchObject({
+      blockedReason: null,
+      blockedAt: null,
+    });
   });
 
   it('block keeps sessions when the transaction fails (short reason, wrong status)', async () => {

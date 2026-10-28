@@ -163,6 +163,8 @@ export async function seed(db: PrismaClient): Promise<SeedSummary> {
           passwordHash,
           organizationId,
           consentAt: new Date('2026-01-01T00:00:00Z'),
+          blockedReason: u.status === 'BLOCKED' ? (u.blockedReason ?? null) : null,
+          blockedAt: u.status === 'BLOCKED' ? new Date('2026-02-01T00:00:00Z') : null,
         };
         const user = await tx.user.upsert({
           where: { email: u.email },
