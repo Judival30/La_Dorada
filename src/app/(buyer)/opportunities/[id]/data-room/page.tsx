@@ -6,6 +6,7 @@ import { NotFoundError } from '@/domain/errors';
 import { formatDay, formatSize } from '@/lib/format';
 import { requireUser } from '@/server/auth/guard';
 import { getDataRoom, type DataRoomView } from '@/server/services/data-room';
+import { activeDealId } from '@/server/services/deal';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Data room' };
@@ -25,6 +26,7 @@ export default async function DataRoomPage({ params }: Props) {
     throw err;
   }
   const o = room.opportunity;
+  const dealId = await activeDealId(user.id, o.id);
 
   return (
     <>
@@ -36,11 +38,19 @@ export default async function DataRoomPage({ params }: Props) {
         Volver a la oportunidad
       </Link>
 
-      <header className="mb-5">
-        <h1 className="ld-h1">{o.title}</h1>
-        <p className="mt-1 text-ld-muted">
-          {o.legalName} | {o.sectorLabel} | {o.department} | {o.typeLabel}
-        </p>
+      <header className="mb-5 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0">
+          <h1 className="ld-h1">{o.title}</h1>
+          <p className="mt-1 text-ld-muted">
+            {o.legalName} | {o.sectorLabel} | {o.department} | {o.typeLabel}
+          </p>
+        </div>
+        <Link
+          href={dealId ? `/processes/${dealId}` : `/opportunities/${o.id}/oferta`}
+          className="ld-btn ld-btn-primary w-full sm:w-auto"
+        >
+          {dealId ? 'Ver proceso' : 'Hacer una oferta'}
+        </Link>
       </header>
 
       <div

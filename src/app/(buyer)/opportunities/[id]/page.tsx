@@ -8,16 +8,18 @@ import { StatusChip } from '@/components/ld/status-chip';
 import { NotFoundError } from '@/domain/errors';
 import { TEASER_SECTIONS } from '@/domain/visibility';
 import { requireUser } from '@/server/auth/guard';
+import { activeDealId } from '@/server/services/deal';
 import { getTeaser, type TeaserDetail } from '@/server/services/marketplace';
 
 export const dynamic = 'force-dynamic';
 
 type Props = { params: Promise<{ id: string }> };
 
-async function load(id: string): Promise<TeaserDetail> {
+async function load(id: string): Promise<TeaserDetail & { activeDealId: string | null }> {
   const user = await requireUser('BUYER');
   try {
-    return await getTeaser(user, id);
+    const t = await getTeaser(user, id);
+    return { ...t, activeDealId: await activeDealId(user.id, t.id) };
   } catch (err) {
     if (err instanceof NotFoundError) notFound();
     throw err;
@@ -152,7 +154,7 @@ export default async function TeaserPage({ params }: Props) {
   );
 }
 
-function AccessPanel({ t }: { t: TeaserDetail }) {
+function AccessPanel({ t }: { t: TeaserDetail & { activeDealId: string | null } }) {
   const { status, canOpenDataRoom } = t.access;
   const base = `/opportunities/${t.id}`;
   let title = 'Solicita acceso';
@@ -181,15 +183,29 @@ function AccessPanel({ t }: { t: TeaserDetail }) {
     );
   } else if (status === 'AUTHORIZED' && canOpenDataRoom) {
     title = 'Tienes acceso';
-    body = 'El vendedor autorizó tu acceso. Revisa los documentos confidenciales.';
+    body = t.activeDealId
+      ? 'Tienes un proceso de negociación abierto con el vendedor.'
+      : 'El vendedor autorizó tu acceso. Revisa los documentos y, cuando estés listo, haz una oferta.';
     action = (
       <div className="flex flex-col gap-2">
-        <Link href={`${base}/data-room`} className="ld-btn ld-btn-primary w-full">
+        {t.activeDealId ? (
+          <Link href={`/processes/${t.activeDealId}`} className="ld-btn ld-btn-primary w-full">
+            Ver proceso
+          </Link>
+        ) : (
+          <Link href={`${base}/oferta`} className="ld-btn ld-btn-primary w-full">
+            Hacer una oferta
+          </Link>
+        )}
+        <Link href={`${base}/data-room`} className="ld-btn ld-btn-quiet w-full">
           Abrir data room
         </Link>
-        {t.dealId ? (
-          <Link href={`/processes/${t.dealId}`} className="ld-btn ld-btn-quiet w-full">
-            Ver proceso
+        {!t.activeDealId && t.dealId ? (
+          <Link
+            href={`/processes/${t.dealId}`}
+            className="ld-small self-center font-semibold text-ld-primary hover:underline"
+          >
+            Ver proceso anterior
           </Link>
         ) : null}
       </div>
