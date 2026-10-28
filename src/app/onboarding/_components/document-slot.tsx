@@ -70,6 +70,11 @@ export function DocumentSlot({ type, label, hint, doc }: Props) {
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100));
     };
+    xhr.timeout = 120_000;
+    xhr.ontimeout = () => {
+      setProgress(null);
+      setError('La subida tardó demasiado. Revisa tu conexión e intenta de nuevo.');
+    };
     xhr.onerror = () => {
       setProgress(null);
       setError('No pudimos subir el archivo. Revisa tu conexión e intenta de nuevo.');
@@ -78,6 +83,10 @@ export function DocumentSlot({ type, label, hint, doc }: Props) {
       setProgress(null);
       if (xhr.status === 201) {
         startRefresh(() => router.refresh());
+        return;
+      }
+      if (xhr.status === 401) {
+        setError('Tu sesión expiró. Vuelve a iniciar sesión.');
         return;
       }
       let message = 'No pudimos subir el archivo. Intenta de nuevo.';

@@ -128,10 +128,19 @@ export default async function OnboardingPage({ searchParams }: PageProps) {
     <div className="min-h-screen bg-ld-bg">
       <OnboardingHeader />
       <main id="contenido" className="mx-auto max-w-4xl px-4 py-8 md:py-12">
+        <h1 className="ld-h1">Completa tu registro como {roleWord}</h1>
+        <p className="mt-1 max-w-[60ch] text-ld-muted">
+          Sigue los pasos para validar tu identidad
+          {view.role === 'SELLER'
+            ? ' y la representación de la empresa'
+            : ' y tu perfil de inversión'}
+          .
+        </p>
+
         {corrections ? (
           <section
             aria-labelledby="corrections-title"
-            className="mb-8 rounded-[var(--ld-radius-panel)] border border-ld-border border-l-4 border-l-[var(--ld-warning)] bg-ld-surface p-5 md:p-6"
+            className="mt-6 rounded-[var(--ld-radius-panel)] border border-ld-border border-l-4 border-l-[var(--ld-warning)] bg-ld-surface p-5 md:p-6"
           >
             <h2
               id="corrections-title"
@@ -148,15 +157,6 @@ export default async function OnboardingPage({ searchParams }: PageProps) {
             </p>
           </section>
         ) : null}
-
-        <h1 className="ld-h1">Completa tu registro como {roleWord}</h1>
-        <p className="mt-1 max-w-[60ch] text-ld-muted">
-          Sigue los pasos para validar tu identidad
-          {view.role === 'SELLER'
-            ? ' y la representación de la empresa'
-            : ' y tu perfil de inversión'}
-          .
-        </p>
 
         <div className="mt-6 flex items-center gap-4">
           <div
@@ -187,7 +187,7 @@ export default async function OnboardingPage({ searchParams }: PageProps) {
           className="mt-8 rounded-[var(--ld-radius-panel)] border border-ld-border bg-ld-surface p-5 md:p-8"
         >
           <div role="status" className="empty:hidden">
-            {savedStep ? (
+            {savedStep && savedStep === current - 1 ? (
               <p className="ld-small mb-5 flex items-center gap-2 font-medium text-[var(--ld-success-ink)]">
                 <Check aria-hidden="true" className="size-4" strokeWidth={2.5} />
                 Guardamos tu paso {savedStep}: {titles[savedStep]}.

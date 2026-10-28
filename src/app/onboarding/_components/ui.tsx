@@ -134,7 +134,7 @@ export function RadioCard({
   onSelect?: () => void;
 }) {
   return (
-    <label className="group relative flex cursor-pointer items-start gap-3 rounded-[var(--ld-radius-control)] border border-ld-border bg-ld-surface p-4 transition-colors hover:border-[#b9c5e0] has-[:checked]:border-ld-primary has-[:checked]:bg-ld-primary-soft has-[:checked]:shadow-[inset_0_0_0_1px_var(--ld-primary)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ld-primary">
+    <label className="group relative flex cursor-pointer items-start gap-3 rounded-[var(--ld-radius-control)] border border-ld-border bg-ld-surface p-4 transition-colors hover:border-ld-border-strong has-[:checked]:border-ld-primary has-[:checked]:bg-ld-primary-soft has-[:checked]:shadow-[inset_0_0_0_1px_var(--ld-primary)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ld-primary">
       <input
         type="radio"
         name={name}
@@ -145,7 +145,7 @@ export function RadioCard({
       />
       <span
         aria-hidden="true"
-        className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border border-[#b9c5e0] bg-ld-surface group-has-[:checked]:border-ld-primary group-has-[:checked]:bg-ld-primary"
+        className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border border-ld-border-strong bg-ld-surface group-has-[:checked]:border-ld-primary group-has-[:checked]:bg-ld-primary"
       >
         <Check className="hidden size-3.5 text-white group-has-[:checked]:block" strokeWidth={3} />
       </span>

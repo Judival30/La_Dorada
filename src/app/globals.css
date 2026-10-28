@@ -14,6 +14,7 @@
   --ld-bg: #f5f8ff;
   --ld-surface: #ffffff;
   --ld-border: #e3e9f5;
+  --ld-border-strong: #b9c5e0;
   --ld-ink: #33415f;
   --ld-muted: #5a6785;
 
@@ -85,6 +86,7 @@
   --color-ld-bg: var(--ld-bg);
   --color-ld-surface: var(--ld-surface);
   --color-ld-border: var(--ld-border);
+  --color-ld-border-strong: var(--ld-border-strong);
   --color-ld-ink: var(--ld-ink);
   --color-ld-muted: var(--ld-muted);
 

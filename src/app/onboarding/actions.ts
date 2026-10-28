@@ -59,10 +59,29 @@ function millions(form: FormData, key: string): number | undefined {
   return Number(raw);
 }
 
+const ECHO_KEYS = new Set([
+  'name',
+  'phone',
+  'position',
+  'isLegalRepresentative',
+  'buyerType',
+  'entityName',
+  'entityNit',
+  'legalName',
+  'nit',
+  'sector',
+  'department',
+  'city',
+  'sectors',
+  'regions',
+  'ticketMinMillions',
+  'ticketMaxMillions',
+]);
+
 function echo(form: FormData): Record<string, string | string[]> {
   const out: Record<string, string | string[]> = {};
   for (const key of new Set(form.keys())) {
-    if (key.startsWith('$ACTION')) continue;
+    if (!ECHO_KEYS.has(key)) continue;
     const all = list(form, key);
     out[key] = all.length > 1 || key === 'sectors' || key === 'regions' ? all : (all[0] ?? '');
   }
@@ -138,6 +157,8 @@ export async function saveStepAction(
   _prev: ActionResult | null,
   form: FormData,
 ): Promise<ActionResult> {
+  // `step` arrives through bind(), so it is not trusted: check it at runtime.
+  if (step !== 1 && step !== 3 && step !== 4) return { error: 'Paso inválido.' };
   try {
     const actor = await requireActorAnyStatus('BUYER', 'SELLER');
     if (actor.role !== 'BUYER' && actor.role !== 'SELLER') return { error: 'Rol no permitido.' };

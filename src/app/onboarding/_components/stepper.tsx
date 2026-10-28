@@ -35,7 +35,7 @@ export function Stepper({ steps, current, completed }: StepperProps) {
                       'ld-num flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold transition-colors',
                       done && 'border-ld-primary bg-ld-primary text-white',
                       !done && isCurrent && 'border-ld-primary bg-ld-surface text-ld-primary',
-                      !done && !isCurrent && 'border-[#b9c5e0] bg-ld-surface text-ld-muted',
+                      !done && !isCurrent && 'border-ld-border-strong bg-ld-surface text-ld-muted',
                       isCurrent && 'ring-4 ring-ld-primary-soft',
                     )}
                   >
@@ -46,7 +46,7 @@ export function Stepper({ steps, current, completed }: StepperProps) {
                       aria-hidden="true"
                       className={cn(
                         'my-1 min-h-3 w-0.5 flex-1 md:mx-2 md:my-0 md:h-0.5 md:min-h-0 md:w-auto',
-                        done ? 'bg-ld-primary' : 'bg-[#cdd8ee]',
+                        done ? 'bg-ld-primary' : 'bg-ld-border-strong',
                       )}
                     />
                   ) : null}
