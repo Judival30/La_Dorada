@@ -11,6 +11,8 @@ import { getStorage } from '../../src/server/storage';
 import { ADMIN_EMAIL, planVerification, type CasePlan } from './data/verification';
 import { sampleFile } from './fixtures';
 import { svgDataUrl, teaserSvg } from './teaser-art';
+import { SEED_OBJECTIVES } from './data/objectives';
+import { seedJourney, type JourneySummary } from './journey';
 
 export type SeedSummary = {
   users: number;
@@ -20,6 +22,8 @@ export type SeedSummary = {
   opportunities: number;
   settings: number;
   verificationCases: number;
+  /** Rows created by phase 2 in this run (0 on an idempotent re-run). */
+  journey?: JourneySummary;
 };
 
 const BUYER_TYPE = {
@@ -248,7 +252,7 @@ export async function seed(db: PrismaClient): Promise<SeedSummary> {
           sellerId,
           title: `Proyecto ${CODENAMES[i % CODENAMES.length]}`,
           type: c.opportunityType,
-          objective: c.description,
+          objective: SEED_OBJECTIVES[c.slug] ?? c.description,
           dealSizeMin: millions(Math.round(base * 0.8)),
           dealSizeMax: millions(Math.round(base * 1.2)),
           horizon: '6 a 12 meses',
@@ -288,6 +292,9 @@ export async function seed(db: PrismaClient): Promise<SeedSummary> {
     },
     { client: db, timeout: 120_000, maxWait: 30_000 },
   );
+
+  // Phase 2: data rooms, evaluations, review decisions and the advanced demo process.
+  summary.journey = await seedJourney(db);
 
   return summary;
 }

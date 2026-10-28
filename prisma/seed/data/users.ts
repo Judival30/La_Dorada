@@ -34,6 +34,19 @@ export const SEED_USERS: SeedUser[] = [
       buyerType: 'FONDO',
     },
   },
+  // Segundo comprador ficticio con una solicitud NDA_SIGNED pendiente de autorización.
+  {
+    email: 'inversiones.pacifico@demo.ladorada.co',
+    name: 'Camila Ortiz Herrera',
+    role: 'BUYER',
+    status: 'ENABLED',
+    organization: {
+      name: 'Inversiones Pacífico S.A.S.',
+      nit: '900.205.005-5',
+      kind: 'BUYER_ENTITY',
+      buyerType: 'FAMILY_OFFICE',
+    },
+  },
   {
     email: 'vendedor@demo.ladorada.co',
     name: 'María González',
