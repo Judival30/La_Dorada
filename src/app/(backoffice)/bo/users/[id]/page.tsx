@@ -17,6 +17,7 @@ import { FeedbackProvider } from '../_components/feedback';
 import { KycChecklist } from '../_components/kyc-checklist';
 import {
   ROLE_NAME,
+  DECISION_LABEL,
   STATUS_LABEL,
   STATUS_TONE,
   actionLabel,
@@ -236,6 +237,35 @@ export default async function UserReviewPage({ params }: PageProps) {
               }))}
               canReview={canReview && !selfReview}
             />
+          </Panel>
+
+          <Panel id="decisiones" title="Historial de decisiones">
+            {detail.decisions.length === 0 ? (
+              <p>Aún no hay decisiones registradas.</p>
+            ) : (
+              <ol className="flex flex-col gap-3">
+                {detail.decisions.map((d, i) => (
+                  <li
+                    key={`${d.at.toISOString()}-${i}`}
+                    className="border-l-2 border-ld-border py-1 pl-4"
+                  >
+                    <p className="ld-small text-ld-muted">
+                      <time dateTime={d.at.toISOString()} className="ld-num">
+                        {formatDateTime(d.at)}
+                      </time>
+                      {' · '}
+                      <span className="font-semibold text-ld-navy">
+                        {DECISION_LABEL[d.kind] ?? d.kind}
+                      </span>
+                      {d.actorName ? ` por ${d.actorName}` : ''}
+                    </p>
+                    {d.text ? (
+                      <p className="mt-1 max-w-[68ch] whitespace-pre-line">{d.text}</p>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+            )}
           </Panel>
 
           <Panel id="historial" title="Historial">

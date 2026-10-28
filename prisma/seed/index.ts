@@ -80,7 +80,7 @@ export async function seed(db: PrismaClient): Promise<SeedSummary> {
     const existingCase = existingUser
       ? await db.verificationCase.findFirst({
           where: { userId: existingUser.id },
-          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
           include: { documents: { select: { type: true } } },
         })
       : null;
@@ -195,7 +195,7 @@ export async function seed(db: PrismaClient): Promise<SeedSummary> {
         };
         const found = await tx.verificationCase.findFirst({
           where: { userId },
-          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         });
         const vc = found
           ? await tx.verificationCase.update({ where: { id: found.id }, data: caseData })

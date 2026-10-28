@@ -4,7 +4,7 @@ import { KpiCard } from '@/components/ld/kpi-card';
 import { PageHeader } from '@/components/ld/page-header';
 import type { UserStatus } from '@/domain/machines/user';
 import { requireUser } from '@/server/auth/guard';
-import { listUsersForReview } from '@/server/services/user-review';
+import { countUsersForReview } from '@/server/services/user-review';
 import { queueHref } from './users/_components/query';
 
 export const metadata: Metadata = { title: 'Inicio de Back Office' };
@@ -18,9 +18,8 @@ const KPIS: { status: UserStatus; label: string }[] = [
 
 export default async function BackofficeHomePage() {
   const user = await requireUser('BACKOFFICE');
-  const totals = await Promise.all(
-    KPIS.map((k) => listUsersForReview(user, { status: k.status }).then((r) => r.total)),
-  );
+  const counts = await countUsersForReview(user);
+  const totals = KPIS.map((k) => (counts.BUYER[k.status] ?? 0) + (counts.SELLER[k.status] ?? 0));
   const inReview = totals[0] ?? 0;
 
   return (

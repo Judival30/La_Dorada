@@ -48,6 +48,9 @@ export async function cleanupTestUsers(tag: string): Promise<void> {
     select: { id: true },
   });
   const caseIds = cases.map((c) => c.id);
+  await db.reviewDecision.deleteMany({
+    where: { OR: [{ actorId: { in: ids } }, { subjectId: { in: ids } }] },
+  });
   await db.kycChecklistItem.deleteMany({ where: { verificationCaseId: { in: caseIds } } });
   await db.verificationDocument.deleteMany({ where: { verificationCaseId: { in: caseIds } } });
   await db.verificationCase.deleteMany({ where: { id: { in: caseIds } } });

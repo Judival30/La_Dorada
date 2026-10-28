@@ -1,4 +1,4 @@
-import { Prisma, type VerificationCaseStatus } from '@prisma/client';
+import { Prisma, type ReviewDecisionKind, type VerificationCaseStatus } from '@prisma/client';
 import { z } from 'zod';
 import {
   ForbiddenError,
@@ -25,6 +25,7 @@ import { db } from '@/server/db';
 import { getKycProvider, type KycScreeningResult } from '@/server/kyc';
 import { notify, sendTemplatedEmail, type NotificationKind } from '@/server/notify/notify';
 import { latestCase, lockUser, readProfile, type LockedUser } from './onboarding';
+import { recordDecision } from './review-decisions';
 
 export type { KycScreeningResult } from '@/server/kyc';
 
@@ -69,7 +70,8 @@ const APPLICANT_HISTORY_ACTIONS: AuditAction[] = [
   'VERIFICATION_DOCUMENT_DELETED',
   'VERIFICATION_DOCUMENT_VIEWED',
 ];
-const LOGIN_ACTIONS: AuditAction[] = ['LOGIN_SUCCEEDED', 'LOGIN_FAILED'];
+/** Session noise that never belongs in the review history. */
+const LOGIN_ACTIONS: AuditAction[] = ['LOGIN_SUCCEEDED', 'LOGIN_FAILED', 'LOGOUT'];
 
 export type ReviewableRole = OnboardingRole;
 
@@ -101,6 +103,13 @@ export type UserReviewChecklistItem = {
   done: boolean;
   checkedByName: string | null;
   checkedAt: Date | null;
+};
+
+export type UserReviewDecisionEntry = {
+  at: Date;
+  kind: ReviewDecisionKind;
+  text: string | null;
+  actorName: string | null;
 };
 
 export type UserReviewHistoryEntry = { at: Date; action: string; actorName: string | null };
@@ -141,6 +150,8 @@ export type UserReviewDetail = {
   progress: ReturnType<typeof onboardingProgress> | null;
   /** At most `HISTORY_LIMIT` audit rows about the user, newest first. */
   history: UserReviewHistoryEntry[];
+  /** Durable decisions with their text, newest first. */
+  decisions: UserReviewDecisionEntry[];
 };
 
 export type ReviewDecision =
@@ -243,6 +254,29 @@ function likePattern(q: string): string {
 }
 
 // ───────────────────────────── reads ─────────────────────────────
+
+/**
+ * Users per role and status for BUYER / SELLER (never BACKOFFICE) in a single
+ * `groupBy`; missing combinations are simply absent.
+ */
+export async function countUsersForReview(
+  actor: SessionUser,
+): Promise<Record<ReviewableRole, Partial<Record<UserStatus, number>>>> {
+  assertBackoffice(actor);
+  const groups = await db.user.groupBy({
+    by: ['role', 'status'],
+    where: { role: { in: ['BUYER', 'SELLER'] } },
+    _count: { _all: true },
+  });
+  const out: Record<ReviewableRole, Partial<Record<UserStatus, number>>> = {
+    BUYER: {},
+    SELLER: {},
+  };
+  for (const g of groups) {
+    if (g.role === 'BUYER' || g.role === 'SELLER') out[g.role][g.status] = g._count._all;
+  }
+  return out;
+}
 
 /**
  * Review queue: BUYER / SELLER accounts only (never BACKOFFICE), optionally
@@ -431,8 +465,19 @@ export async function getUserReview(actor: SessionUser, userId: string): Promise
     take: HISTORY_LIMIT,
     select: { at: true, action: true, actorId: true },
   });
+  const decisionRows = await db.reviewDecision.findMany({
+    where: { subjectType: 'USER', subjectId: userId },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    select: { createdAt: true, kind: true, text: true, actorId: true },
+  });
   const actorIds = [
-    ...new Set([...rows.map((r) => r.actorId), vc?.decidedById].filter((x): x is string => !!x)),
+    ...new Set(
+      [
+        ...rows.map((r) => r.actorId),
+        ...decisionRows.map((d) => d.actorId),
+        vc?.decidedById,
+      ].filter((x): x is string => !!x),
+    ),
   ];
   const actors = await db.user.findMany({
     where: { id: { in: actorIds } },
@@ -495,6 +540,12 @@ export async function getUserReview(actor: SessionUser, userId: string): Promise
       at: r.at,
       action: r.action,
       actorName: r.actorId ? (nameOf.get(r.actorId) ?? null) : null,
+    })),
+    decisions: decisionRows.map((d) => ({
+      at: d.createdAt,
+      kind: d.kind,
+      text: d.text,
+      actorName: nameOf.get(d.actorId) ?? null,
     })),
   };
 }
@@ -763,6 +814,13 @@ export async function decideUser(
         ...(d.kind === 'REJECT' ? { rejectionReason: d.reason } : {}),
       },
     });
+    await recordDecision(tx, {
+      subjectType: 'USER',
+      subjectId: userId,
+      kind: d.kind,
+      text: d.kind === 'REQUEST_CORRECTIONS' ? d.notes : d.kind === 'REJECT' ? d.reason : null,
+      actorId: actor.id,
+    });
     await notify(tx, { userId, kind: spec.notification, payload: { caseId: vc.id } });
 
     return {
@@ -823,6 +881,13 @@ async function changeBlockState(
           ? { status: next, blockedReason: reason, blockedAt: new Date() }
           : { status: next, blockedReason: null, blockedAt: null },
       select: { email: true, name: true },
+    });
+    await recordDecision(tx, {
+      subjectType: 'USER',
+      subjectId: userId,
+      kind: event,
+      text: reason,
+      actorId: actor.id,
     });
     if (event === 'BLOCK') await invalidateUserSessions(userId, { tx });
     await notify(tx, { userId, kind, payload: reason ? { reason } : {} });

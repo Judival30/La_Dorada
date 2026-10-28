@@ -237,6 +237,8 @@ model User {
   reportedIncidents Incident[]         @relation("IncidentReporter")
   assignedIncidents Incident[]         @relation("IncidentAssignee")
   checkedKycItems   KycChecklistItem[]
+  decidedCases      VerificationCase[] @relation("VerificationCaseDecider")
+  reviewDecisions   ReviewDecision[]   @relation("ReviewDecisionActor")
 
   @@index([role, status])
 }
@@ -299,6 +301,7 @@ model VerificationCase {
   submittedAt           DateTime?
   decidedAt             DateTime?
   decidedById           String?
+  decidedBy             User?                  @relation("VerificationCaseDecider", fields: [decidedById], references: [id], onDelete: Restrict)
   correctionNotes       String?
   rejectionReason       String?
   createdAt             DateTime               @default(now())
@@ -308,6 +311,35 @@ model VerificationCase {
   checklist KycChecklistItem[]
 
   @@index([userId])
+}
+
+enum ReviewSubject {
+  USER
+  OPPORTUNITY
+}
+
+enum ReviewDecisionKind {
+  APPROVE
+  REQUEST_CORRECTIONS
+  REJECT
+  BLOCK
+  UNBLOCK
+  SUSPEND
+  REINSTATE
+}
+
+/// Durable history of Back Office decisions (with their free text). Never audited: the text stays here.
+model ReviewDecision {
+  id          String             @id @default(cuid())
+  subjectType ReviewSubject
+  subjectId   String
+  kind        ReviewDecisionKind
+  text        String?
+  actorId     String
+  actor       User               @relation("ReviewDecisionActor", fields: [actorId], references: [id], onDelete: Restrict)
+  createdAt   DateTime           @default(now())
+
+  @@index([subjectType, subjectId, createdAt])
 }
 
 model VerificationDocument {

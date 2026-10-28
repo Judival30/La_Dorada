@@ -5,7 +5,11 @@ import { EmptyState } from '@/components/ld/empty-state';
 import { PageHeader } from '@/components/ld/page-header';
 import { USER_STATUSES } from '@/domain/machines/user';
 import { requireUser } from '@/server/auth/guard';
-import { REVIEW_PAGE_SIZE, listUsersForReview } from '@/server/services/user-review';
+import {
+  REVIEW_PAGE_SIZE,
+  countUsersForReview,
+  listUsersForReview,
+} from '@/server/services/user-review';
 import { STATUS_LABEL } from './_components/labels';
 import { parseQueueQuery, queueHref } from './_components/query';
 import { UsersTable } from './_components/users-table';
@@ -20,22 +24,36 @@ export default async function UsersQueuePage({ searchParams }: PageProps) {
   const { role, status, q, page } = query;
   const base = { status, q };
 
-  // Tab counts respect the search and the status filter; the active tab's call also feeds the table.
-  const [all, buyers, sellers] = await Promise.all([
-    listUsersForReview(actor, { ...base, page: role === undefined ? page : 1 }),
-    listUsersForReview(actor, { ...base, role: 'BUYER', page: role === 'BUYER' ? page : 1 }),
-    listUsersForReview(actor, { ...base, role: 'SELLER', page: role === 'SELLER' ? page : 1 }),
-  ]);
-  const current = role === 'BUYER' ? buyers : role === 'SELLER' ? sellers : all;
+  // Tab counts respect the status filter (one grouped count); the list call feeds the table.
+  // A text search cannot be counted by role/status, so then the tab totals come from list calls.
+  const current = await listUsersForReview(actor, { ...base, role, page });
+  let tabTotals: { all: number; buyers: number; sellers: number };
+  if (q) {
+    const totalOf = async (r?: 'BUYER' | 'SELLER') =>
+      r === role ? current.total : (await listUsersForReview(actor, { ...base, role: r })).total;
+    const [all, buyers, sellers] = await Promise.all([
+      totalOf(undefined),
+      totalOf('BUYER'),
+      totalOf('SELLER'),
+    ]);
+    tabTotals = { all, buyers, sellers };
+  } else {
+    const counts = await countUsersForReview(actor);
+    const sum = (r: 'BUYER' | 'SELLER') =>
+      status
+        ? (counts[r][status] ?? 0)
+        : Object.values(counts[r]).reduce((a, n) => a + (n ?? 0), 0);
+    tabTotals = { all: sum('BUYER') + sum('SELLER'), buyers: sum('BUYER'), sellers: sum('SELLER') };
+  }
   const pages = Math.max(1, Math.ceil(current.total / REVIEW_PAGE_SIZE));
   const from = (page - 1) * REVIEW_PAGE_SIZE + 1;
   const to = Math.min(page * REVIEW_PAGE_SIZE, current.total);
   const filtered = Boolean(status || q);
 
   const tabs = [
-    { label: 'Todos', value: undefined, total: all.total },
-    { label: 'Compradores', value: 'BUYER' as const, total: buyers.total },
-    { label: 'Vendedores', value: 'SELLER' as const, total: sellers.total },
+    { label: 'Todos', value: undefined, total: tabTotals.all },
+    { label: 'Compradores', value: 'BUYER' as const, total: tabTotals.buyers },
+    { label: 'Vendedores', value: 'SELLER' as const, total: tabTotals.sellers },
   ];
 
   return (
