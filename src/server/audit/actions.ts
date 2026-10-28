@@ -39,6 +39,15 @@ export const AUDIT_ACTIONS = [
   'ACCESS_APPROVED',
   'ACCESS_REJECTED',
   'ACCESS_REVOKED',
+  // Negotiation: offers, LOI and closing (MVP Task 6)
+  'OFFER_SUBMITTED',
+  'OFFER_COUNTERED',
+  'OFFER_ACCEPTED',
+  'LOI_SIGNED',
+  'DUE_DILIGENCE_STARTED',
+  'DEAL_CLOSE_CONFIRMED',
+  'DEAL_WITHDRAWN',
+  'OPPORTUNITY_CLOSED',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

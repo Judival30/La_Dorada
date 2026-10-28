@@ -118,6 +118,55 @@ const SPECS: Record<NotificationKind, Spec> = {
       'Tu acceso a la información confidencial de una oportunidad fue retirado. Si tienes preguntas, comunícate con el equipo de La Dorada.',
     ],
   },
+  DEAL_OFFER_RECEIVED: {
+    subject: 'Recibiste una nueva oferta',
+    lines: (n) => [
+      `Hola ${n},`,
+      'La otra parte de tu proceso de negociación envió una oferta. Ingresa a La Dorada para revisarla, aceptarla o responder con una contraoferta.',
+    ],
+  },
+  DEAL_OFFER_ACCEPTED: {
+    subject: 'Tu oferta fue aceptada',
+    lines: (n) => [
+      `Hola ${n},`,
+      'La otra parte aceptó tu oferta. El siguiente paso es firmar la carta de intención en La Dorada.',
+    ],
+  },
+  DEAL_LOI_SIGNED: {
+    subject: 'Hay novedades en la carta de intención',
+    lines: (n) => [
+      `Hola ${n},`,
+      'La otra parte firmó la carta de intención de tu proceso. Ingresa a La Dorada para ver el estado de las firmas.',
+    ],
+  },
+  DEAL_DD_STARTED: {
+    subject: 'Comenzó la due diligence',
+    lines: (n) => [
+      `Hola ${n},`,
+      'La due diligence de tu proceso de negociación comenzó. Puedes seguir el avance en La Dorada.',
+    ],
+  },
+  DEAL_CLOSE_CONFIRMED: {
+    subject: 'La otra parte confirmó el cierre',
+    lines: (n) => [
+      `Hola ${n},`,
+      'La otra parte confirmó el cierre de la transacción. Cuando tú también lo confirmes, el proceso quedará cerrado.',
+    ],
+  },
+  DEAL_CLOSED: {
+    subject: 'La transacción quedó cerrada',
+    lines: (n) => [
+      `Hola ${n},`,
+      'Ambas partes confirmaron el cierre. El proceso quedó cerrado y la oportunidad salió del marketplace.',
+    ],
+  },
+  DEAL_WITHDRAWN: {
+    subject: 'Un proceso de negociación terminó',
+    lines: (n) => [
+      `Hola ${n},`,
+      'La otra parte desistió del proceso de negociación. Ingresa a La Dorada para ver el detalle.',
+    ],
+  },
 };
 
 /** Builds subject, plain text and simple HTML for `kind`. Interpolated values are HTML-escaped. */

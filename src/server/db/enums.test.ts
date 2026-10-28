@@ -5,6 +5,7 @@
  */
 import {
   AccessStatus,
+  DealStage,
   DealStatus,
   EvaluationItemKind,
   EvaluationItemStatus,
@@ -24,6 +25,7 @@ import {
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import { EVALUATION_ITEM_KINDS, EVALUATION_ITEM_STATUSES } from '@/domain/evaluation';
 import { ACCESS_STATUSES } from '@/domain/machines/access';
+import { DEAL_STAGES } from '@/domain/deal';
 import { DEAL_STATUSES } from '@/domain/machines/deal';
 import { OPPORTUNITY_STATUSES } from '@/domain/machines/opportunity';
 import { USER_STATUSES } from '@/domain/machines/user';
@@ -43,6 +45,7 @@ describe('Prisma enums mirror domain literals', () => {
     ['OpportunityStatus', OpportunityStatus, OPPORTUNITY_STATUSES],
     ['AccessStatus', AccessStatus, ACCESS_STATUSES],
     ['DealStatus', DealStatus, DEAL_STATUSES],
+    ['DealStage', DealStage, DEAL_STAGES],
     ['Sector', Sector, SECTORS],
     ['VerificationDocumentType', VerificationDocumentType, VERIFICATION_DOCUMENT_TYPES],
     ['BuyerType', BuyerType, BUYER_TYPES],

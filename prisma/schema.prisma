@@ -597,7 +597,11 @@ model Deal {
   buyerId       String
   buyer         User        @relation("DealBuyer", fields: [buyerId], references: [id], onDelete: Restrict)
   status        DealStatus  @default(OFFER_SENT)
+  /// Legacy column, no longer written: the stepper stage is derived with `dealStageOf` (P8).
   stage         DealStage   @default(OFFER)
+  /// Each party confirms the close; the deal is CLOSED only when both are set.
+  buyerClosedAt  DateTime?
+  sellerClosedAt DateTime?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
