@@ -8,10 +8,17 @@ import type { Role } from '@/domain/roles';
 import { NAV, ROLE_LABEL, type NavItem } from '@/config/nav';
 import { cn } from '@/lib/utils';
 import { logoutAction } from '@/server/auth/actions';
+import type { NotificationsView } from '@/server/services/notifications';
 import { Logo } from './logo';
+import { NotificationBell } from './notification-bell';
 
 type ShellUser = { name: string; email: string };
-type AppShellProps = { role: Role; user: ShellUser; children: React.ReactNode };
+type AppShellProps = {
+  role: Role;
+  user: ShellUser;
+  notifications: NotificationsView;
+  children: React.ReactNode;
+};
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -98,7 +105,7 @@ function BrandCard() {
   );
 }
 
-export function AppShell({ role, user, children }: AppShellProps) {
+export function AppShell({ role, user, notifications, children }: AppShellProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
@@ -137,7 +144,11 @@ export function AppShell({ role, user, children }: AppShellProps) {
       {/* Desktop sidebar */}
       <aside className="hidden border-r border-ld-border bg-ld-surface md:block">
         <div className="sticky top-0 flex h-screen flex-col gap-6 overflow-y-auto px-4 py-5">
-          <Link href={NAV[role][0]?.href ?? '/'} aria-label="La Dorada, ir al inicio" className="px-2">
+          <Link
+            href={NAV[role][0]?.href ?? '/'}
+            aria-label="La Dorada, ir al inicio"
+            className="px-2"
+          >
             <Logo />
           </Link>
           <NavList role={role} />
@@ -162,8 +173,13 @@ export function AppShell({ role, user, children }: AppShellProps) {
             <Menu aria-hidden="true" className="size-6" />
           </button>
           <Logo variant="mark" className="[&_svg]:h-7" />
-          <span className="font-display text-lg font-bold tracking-[-0.02em] text-ld-navy">La Dorada</span>
-          <span className="ml-auto flex size-9 items-center justify-center rounded-full bg-ld-navy text-[0.8125rem] font-semibold text-white">
+          <span className="font-display text-lg font-bold tracking-[-0.02em] text-ld-navy">
+            La Dorada
+          </span>
+          <div className="ml-auto">
+            <NotificationBell data={notifications} />
+          </div>
+          <span className="flex size-9 items-center justify-center rounded-full bg-ld-navy text-[0.8125rem] font-semibold text-white">
             <span aria-hidden="true">{initials(user.name)}</span>
             <span className="sr-only">{`${user.name}, ${roleLabel}`}</span>
           </span>
@@ -201,6 +217,7 @@ export function AppShell({ role, user, children }: AppShellProps) {
           >
             <CircleHelp aria-hidden="true" className="size-5" />
           </Link>
+          <NotificationBell data={notifications} />
           <div className="ml-1 flex items-center gap-3 border-l border-ld-border pl-4">
             <span
               aria-hidden="true"
@@ -213,10 +230,7 @@ export function AppShell({ role, user, children }: AppShellProps) {
               <p className="ld-note text-ld-muted">{roleLabel}</p>
             </div>
             <form action={logoutAction}>
-              <button
-                type="submit"
-                className="ld-btn ld-btn-quiet min-h-10 px-3"
-              >
+              <button type="submit" className="ld-btn ld-btn-quiet min-h-10 px-3">
                 <LogOut aria-hidden="true" className="size-4" />
                 Cerrar sesión
               </button>
@@ -224,7 +238,10 @@ export function AppShell({ role, user, children }: AppShellProps) {
           </div>
         </header>
 
-        <main id="contenido" className="mx-auto w-full max-w-[1200px] flex-1 px-4 py-6 md:px-8 md:py-8">
+        <main
+          id="contenido"
+          className="mx-auto w-full max-w-[1200px] flex-1 px-4 py-6 md:px-8 md:py-8"
+        >
           {children}
         </main>
       </div>

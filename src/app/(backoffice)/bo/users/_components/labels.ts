@@ -90,3 +90,13 @@ export function initialsOf(name: string): string {
   const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
   return (first + last).toUpperCase();
 }
+
+export const DECISION_LABEL: Record<string, string> = {
+  APPROVE: 'Aprobó el registro',
+  REQUEST_CORRECTIONS: 'Solicitó correcciones',
+  REJECT: 'Rechazó el registro',
+  BLOCK: 'Bloqueó la cuenta',
+  UNBLOCK: 'Desbloqueó la cuenta',
+  SUSPEND: 'Suspendió',
+  REINSTATE: 'Reactivó',
+};

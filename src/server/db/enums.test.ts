@@ -5,7 +5,11 @@
  */
 import {
   AccessStatus,
+  DealStage,
   DealStatus,
+  EvaluationItemKind,
+  EvaluationItemStatus,
+  InfoSection,
   MatrixStatus,
   OfferAuthor,
   OpportunityStatus,
@@ -19,17 +23,21 @@ import {
   UserStatus,
 } from '@prisma/client';
 import { describe, expect, expectTypeOf, it } from 'vitest';
+import { EVALUATION_ITEM_KINDS, EVALUATION_ITEM_STATUSES } from '@/domain/evaluation';
 import { ACCESS_STATUSES } from '@/domain/machines/access';
+import { DEAL_STAGES } from '@/domain/deal';
 import { DEAL_STATUSES } from '@/domain/machines/deal';
 import { OPPORTUNITY_STATUSES } from '@/domain/machines/opportunity';
 import { USER_STATUSES } from '@/domain/machines/user';
 import { BUYER_TYPES, REVIEW_STATUSES, VERIFICATION_DOCUMENT_TYPES } from '@/domain/onboarding';
+import { OPPORTUNITY_TYPES } from '@/domain/opportunity';
 import type { Role as DomainRole } from '@/domain/roles';
 import { SECTORS } from '@/domain/sectors';
 import type {
   MatrixStatus as DomainMatrixStatus,
   RiskLevel as DomainRiskLevel,
 } from '@/domain/valuation';
+import { INFO_SECTIONS } from '@/domain/visibility';
 
 describe('Prisma enums mirror domain literals', () => {
   it.each([
@@ -37,10 +45,15 @@ describe('Prisma enums mirror domain literals', () => {
     ['OpportunityStatus', OpportunityStatus, OPPORTUNITY_STATUSES],
     ['AccessStatus', AccessStatus, ACCESS_STATUSES],
     ['DealStatus', DealStatus, DEAL_STATUSES],
+    ['DealStage', DealStage, DEAL_STAGES],
     ['Sector', Sector, SECTORS],
     ['VerificationDocumentType', VerificationDocumentType, VERIFICATION_DOCUMENT_TYPES],
     ['BuyerType', BuyerType, BUYER_TYPES],
     ['ReviewStatus', ReviewStatus, REVIEW_STATUSES],
+    ['OpportunityType', OpportunityType, OPPORTUNITY_TYPES],
+    ['InfoSection', InfoSection, INFO_SECTIONS],
+    ['EvaluationItemKind', EvaluationItemKind, EVALUATION_ITEM_KINDS],
+    ['EvaluationItemStatus', EvaluationItemStatus, EVALUATION_ITEM_STATUSES],
   ] as const)('%s', (_name, prismaEnum, domain) => {
     expect(Object.values(prismaEnum)).toEqual([...domain]);
   });
@@ -57,13 +70,7 @@ describe('Prisma enums mirror domain literals', () => {
     expectTypeOf<RiskLevel>().toEqualTypeOf<DomainRiskLevel>();
   });
 
-  it('OpportunityType and OfferAuthor', () => {
-    expect(Object.values(OpportunityType)).toEqual([
-      'VENTA_TOTAL',
-      'VENTA_PARCIAL',
-      'LEVANTAMIENTO_CAPITAL',
-      'SOCIO_ESTRATEGICO',
-    ]);
+  it('OfferAuthor', () => {
     expect(Object.values(OfferAuthor)).toEqual(['BUYER', 'SELLER']);
   });
 });

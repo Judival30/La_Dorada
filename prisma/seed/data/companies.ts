@@ -34,7 +34,7 @@ export const SEED_COMPANIES: SeedCompany[] = [
     foundedYear: 2009,
     employeesRange: '51 - 200',
     description:
-      'Tostadora de cafés especiales de origen antioqueño, con marca propia y distribución a cafeterías y supermercados en Medellín, Bogotá y Cali. Busca vender una participación parcial para financiar la expansión de su planta.',
+      'Tostadora de cafés especiales de origen antioqueño, con marca propia y distribución a cafeterías y supermercados en las principales ciudades del país. Busca vender una participación parcial para financiar la expansión de su planta.',
     opportunityType: 'VENTA_PARCIAL',
     status: 'PUBLISHED',
     financials: [
@@ -154,7 +154,7 @@ export const SEED_COMPANIES: SeedCompany[] = [
     foundedYear: 2003,
     employeesRange: '201 - 500',
     description:
-      'Clínica de mediana complejidad con servicios de urgencias, cirugía ambulatoria y consulta especializada en Cali. El accionista busca vender una participación parcial para financiar una nueva torre de consultorios.',
+      'Clínica de mediana complejidad con servicios de urgencias, cirugía ambulatoria y consulta especializada en el suroccidente del país. El accionista busca vender una participación parcial para financiar una nueva torre de consultorios.',
     opportunityType: 'VENTA_PARCIAL',
     status: 'PUBLISHED',
     financials: [
@@ -178,7 +178,7 @@ export const SEED_COMPANIES: SeedCompany[] = [
     foundedYear: 1994,
     employeesRange: '51 - 200',
     description:
-      'Constructora de proyectos de vivienda de interés social y mixta en el área metropolitana de Bucaramanga. Requiere capital para lanzar dos nuevas etapas de construcción.',
+      'Constructora de proyectos de vivienda de interés social y mixta en el nororiente del país. Requiere capital para lanzar dos nuevas etapas de construcción.',
     opportunityType: 'LEVANTAMIENTO_CAPITAL',
     status: 'PUBLISHED',
     financials: [
@@ -274,7 +274,7 @@ export const SEED_COMPANIES: SeedCompany[] = [
     foundedYear: 2001,
     employeesRange: '51 - 200',
     description:
-      'Entidad de financiamiento para microempresas y libranzas en Manizales y municipios del Viejo Caldas. Busca vender una participación parcial a un inversionista que aporte capital de fondeo.',
+      'Entidad de financiamiento para microempresas y libranzas en el Eje Cafetero. Busca vender una participación parcial a un inversionista que aporte capital de fondeo.',
     opportunityType: 'VENTA_PARCIAL',
     status: 'PUBLISHED',
     financials: [
@@ -346,7 +346,7 @@ export const SEED_COMPANIES: SeedCompany[] = [
     foundedYear: 2012,
     employeesRange: '11 - 50',
     description:
-      'Red de laboratorios clínicos y toma de muestras a domicilio con cobertura en Bogotá y Soacha. Su propietario busca levantar capital para abrir sedes en el norte de la ciudad.',
+      'Red de laboratorios clínicos y toma de muestras a domicilio con cobertura en la capital y su área de influencia. Su propietario busca levantar capital para abrir sedes en el norte de la ciudad.',
     opportunityType: 'LEVANTAMIENTO_CAPITAL',
     status: 'DRAFT',
     financials: [

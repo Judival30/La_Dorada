@@ -29,6 +29,7 @@ import {
 } from './onboarding';
 import {
   blockUser,
+  countUsersForReview,
   decideUser,
   getUserReview,
   listUsersForReview,
@@ -697,5 +698,105 @@ describe('getUserReview', () => {
   it('a BACKOFFICE account or unknown id is not reviewable → NotFoundError', async () => {
     await expect(getUserReview(bo, bo.id)).rejects.toBeInstanceOf(NotFoundError);
     await expect(getUserReview(bo, 'no-existe')).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
+
+describe('durable review decisions', () => {
+  const decisionsOf = (userId: string) =>
+    db.reviewDecision.findMany({
+      where: { subjectType: 'USER', subjectId: userId },
+      orderBy: { createdAt: 'asc' },
+    });
+
+  it('each decision creates a row with its text and actor', async () => {
+    const u = await inReviewSeller();
+    await decideUser(bo, u.id, { kind: 'REQUEST_CORRECTIONS', notes: NOTES });
+    expect(await decisionsOf(u.id)).toMatchObject([
+      { kind: 'REQUEST_CORRECTIONS', text: NOTES, actorId: bo.id },
+    ]);
+
+    const r = await inReviewSeller();
+    await decideUser(bo, r.id, { kind: 'REJECT', reason: REASON });
+    expect(await decisionsOf(r.id)).toMatchObject([{ kind: 'REJECT', text: REASON }]);
+
+    const a = await inReviewSeller();
+    await approveAllDocuments(a.caseId);
+    await checkAllKyc(a.caseId);
+    await decideUser(bo, a.id, { kind: 'APPROVE' });
+    expect(await decisionsOf(a.id)).toMatchObject([{ kind: 'APPROVE', text: null }]);
+
+    await blockUser(bo, a.id, REASON);
+    await unblockUser(bo, a.id);
+    expect((await decisionsOf(a.id)).map((d) => [d.kind, d.text])).toEqual([
+      ['APPROVE', null],
+      ['BLOCK', REASON],
+      ['UNBLOCK', null],
+    ]);
+  });
+
+  it('a failed decision records nothing', async () => {
+    const u = await inReviewSeller();
+    await expect(decideUser(bo, u.id, { kind: 'APPROVE' })).rejects.toBeInstanceOf(ValidationError);
+    expect(await decisionsOf(u.id)).toHaveLength(0);
+  });
+
+  it('a second corrections round keeps both decisions, shown newest first by getUserReview', async () => {
+    const u = await inReviewSeller();
+    await decideUser(bo, u.id, { kind: 'REQUEST_CORRECTIONS', notes: NOTES });
+    await saveStep(u.id, 1, { ...SELLER_STEPS[1], name: 'Valentina Ríos Mejía' });
+    await submitForReview(u.id);
+    const second = 'Falta el RUT actualizado, súbelo de nuevo por favor.';
+    await decideUser(bo, u.id, { kind: 'REQUEST_CORRECTIONS', notes: second });
+
+    expect((await decisionsOf(u.id)).map((d) => d.text)).toEqual([NOTES, second]);
+    const r = await getUserReview(bo, u.id);
+    expect(r.decisions.map((d) => d.text)).toEqual([second, NOTES]);
+    expect(r.decisions[0]).toMatchObject({
+      kind: 'REQUEST_CORRECTIONS',
+      actorName: 'Revisora Back Office',
+    });
+    expect(r.decisions[0]?.at).toBeInstanceOf(Date);
+    expect(r.case?.correctionNotes).toBe(second);
+  });
+
+  it('the history excludes LOGOUT', async () => {
+    const u = await inReviewSeller();
+    await audited(async () => ({
+      result: undefined,
+      audit: { actorId: u.id, action: 'LOGOUT', entity: 'User', entityId: u.id },
+    }));
+    const r = await getUserReview(bo, u.id);
+    expect(r.history.map((h) => h.action)).not.toContain('LOGOUT');
+  });
+
+  it('VerificationCase.decidedById rejects an unknown user', async () => {
+    const u = await inReviewSeller();
+    await expect(
+      db.verificationCase.update({ where: { id: u.caseId }, data: { decidedById: randomUUID() } }),
+    ).rejects.toMatchObject({ code: 'P2003' });
+  });
+});
+
+describe('countUsersForReview', () => {
+  it('matches the real per-role and per-status counts in one groupBy', async () => {
+    await inReviewSeller();
+    await createTestUser(tag, 'BUYER', 'ENABLED');
+    const counts = await countUsersForReview(bo);
+    for (const role of ['BUYER', 'SELLER'] as const) {
+      const rows = await db.user.groupBy({
+        by: ['status'],
+        where: { role },
+        _count: { _all: true },
+      });
+      const expected = Object.fromEntries(rows.map((g) => [g.status, g._count._all]));
+      expect(counts[role]).toEqual(expected);
+      const listed = await listUsersForReview(bo, { role, status: 'IN_REVIEW' });
+      expect(counts[role].IN_REVIEW ?? 0).toBe(listed.total);
+    }
+  });
+
+  it('requires an enabled BACKOFFICE', async () => {
+    const s = await createTestUser(tag, 'SELLER');
+    await expect(countUsersForReview(await session(s.id))).rejects.toBeInstanceOf(ForbiddenError);
   });
 });
