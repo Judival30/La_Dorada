@@ -44,3 +44,20 @@ export const env: Env = new Proxy({} as Env, {
   ownKeys: () => Reflect.ownKeys(getEnv()),
   getOwnPropertyDescriptor: (_target, prop) => Object.getOwnPropertyDescriptor(getEnv(), prop),
 });
+
+const driverSchema = envSchema.pick({ STORAGE_DRIVER: true, MAIL_DRIVER: true });
+
+/**
+ * Validated adapter drivers only (read fresh from `process.env`, so it does not
+ * require the S3/SMTP variables). Memory drivers are refused in production.
+ */
+export function getDriverEnv(raw: Record<string, string | undefined> = process.env) {
+  const drivers = driverSchema.parse(raw);
+  if (
+    raw.NODE_ENV === 'production' &&
+    (drivers.STORAGE_DRIVER === 'memory' || drivers.MAIL_DRIVER === 'memory')
+  ) {
+    throw new Error('Memory storage/mail drivers are not allowed in production');
+  }
+  return drivers;
+}

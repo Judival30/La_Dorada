@@ -1,3 +1,4 @@
+import { getDriverEnv } from '@/server/env';
 import { MemoryMailer } from './memory';
 import { SmtpMailer } from './smtp';
 
@@ -11,8 +12,7 @@ let mailer: Mailer | undefined;
 
 /** Memoized singleton chosen by `MAIL_DRIVER` (`smtp` by default, `memory` in tests). */
 export function getMailer(): Mailer {
-  mailer ??=
-    (process.env.MAIL_DRIVER ?? 'smtp') === 'memory' ? new MemoryMailer() : new SmtpMailer();
+  mailer ??= getDriverEnv().MAIL_DRIVER === 'memory' ? new MemoryMailer() : new SmtpMailer();
   return mailer;
 }
 

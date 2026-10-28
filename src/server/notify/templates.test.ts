@@ -19,6 +19,11 @@ describe('templates', () => {
     expect(t.html).not.toContain('<script>');
     expect(t.html).toContain('&lt;script&gt;');
   });
+
+  it('escapes ampersands and quotes', () => {
+    const t = renderTemplate('ONBOARDING_APPROVED', { name: `A&B "C" 'D'` });
+    expect(t.html).toContain('A&amp;B &quot;C&quot; &#39;D&#39;');
+  });
 });
 
 describe('sendTemplatedEmail', () => {
@@ -47,5 +52,18 @@ describe('sendTemplatedEmail', () => {
     ).resolves.toBeUndefined();
     expect(err).toHaveBeenCalled();
     expect(JSON.stringify(err.mock.calls)).not.toContain('secreto@example.com');
+  });
+
+  it('does not leak the address even when the error message contains it', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const e = Object.assign(new Error('550 5.1.1 <victima@example.com>: Recipient rejected'), {
+      code: 'EENVELOPE',
+    });
+    vi.spyOn(getMailer(), 'send').mockRejectedValue(e);
+    await sendTemplatedEmail('victima@example.com', 'ACCOUNT_BLOCKED', {});
+    expect(err).toHaveBeenCalled();
+    const logged = err.mock.calls.flat().map((a) => String(a));
+    expect(logged.join(' ')).not.toContain('victima@example.com');
+    expect(logged.join(' ')).toContain('EENVELOPE');
   });
 });

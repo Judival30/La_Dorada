@@ -1,3 +1,4 @@
+import { getDriverEnv } from '@/server/env';
 import { MemoryStorage } from './memory';
 import { S3Storage } from './s3';
 
@@ -12,8 +13,7 @@ let storage: ObjectStorage | undefined;
 
 /** Memoized singleton chosen by `STORAGE_DRIVER` (`s3` by default, `memory` in unit tests). */
 export function getStorage(): ObjectStorage {
-  storage ??=
-    (process.env.STORAGE_DRIVER ?? 's3') === 'memory' ? new MemoryStorage() : new S3Storage();
+  storage ??= getDriverEnv().STORAGE_DRIVER === 'memory' ? new MemoryStorage() : new S3Storage();
   return storage;
 }
 

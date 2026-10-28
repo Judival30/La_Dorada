@@ -37,9 +37,12 @@ export async function sendTemplatedEmail(
     const t = renderTemplate(kind, data);
     await getMailer().send({ to, subject: t.subject, text: t.text, html: t.html });
   } catch (err) {
+    // Never log err.message: SMTP errors often embed the recipient address.
+    const code = (err as { code?: unknown } | null)?.code;
     console.error(
       `[mail] failed to send ${kind}:`,
-      err instanceof Error ? err.message : 'unknown error',
+      err instanceof Error ? err.name : 'UnknownError',
+      typeof code === 'string' ? code : undefined,
     );
   }
 }

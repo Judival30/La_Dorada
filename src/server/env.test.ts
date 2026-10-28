@@ -1,6 +1,6 @@
 import { ZodError } from 'zod';
 import { describe, expect, it } from 'vitest';
-import { parseEnv } from './env';
+import { getDriverEnv, parseEnv } from './env';
 
 const full = {
   DATABASE_URL: 'postgresql://ladorada:ladorada@localhost:5432/ladorada',
@@ -41,5 +41,24 @@ describe('parseEnv', () => {
 
   it('rejects an invalid APP_URL', () => {
     expect(() => parseEnv({ ...full, APP_URL: 'nope' })).toThrow(ZodError);
+  });
+});
+
+describe('getDriverEnv', () => {
+  it('defaults to s3 and smtp', () => {
+    expect(getDriverEnv({})).toEqual({ STORAGE_DRIVER: 's3', MAIL_DRIVER: 'smtp' });
+  });
+
+  it('rejects memory drivers in production', () => {
+    expect(() => getDriverEnv({ NODE_ENV: 'production', MAIL_DRIVER: 'memory' })).toThrow(
+      /production/,
+    );
+    expect(() => getDriverEnv({ NODE_ENV: 'production', STORAGE_DRIVER: 'memory' })).toThrow(
+      /production/,
+    );
+  });
+
+  it('allows memory drivers outside production', () => {
+    expect(getDriverEnv({ NODE_ENV: 'test', MAIL_DRIVER: 'memory' }).MAIL_DRIVER).toBe('memory');
   });
 });
