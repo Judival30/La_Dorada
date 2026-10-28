@@ -209,6 +209,7 @@ model User {
   role           Role
   status         UserStatus    @default(PENDING)
   totpSecret     String?
+  phone          String?
   consentAt      DateTime?
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
@@ -279,15 +280,26 @@ model BuyerPreferences {
 }
 
 model VerificationCase {
-  id        String                 @id @default(cuid())
-  userId    String
-  user      User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  id                    String                 @id @default(cuid())
+  userId                String
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
   /// Onboarding step 1–6.
-  step      Int                    @default(1)
-  status    VerificationCaseStatus @default(OPEN)
-  notes     String?
-  createdAt DateTime               @default(now())
-  updatedAt DateTime               @updatedAt
+  step                  Int                    @default(1)
+  status                VerificationCaseStatus @default(OPEN)
+  notes                 String?
+  /// Step 3 (seller): is the user the company's legal representative?
+  isLegalRepresentative Boolean?
+  /// Step 3 (buyer).
+  buyerType             BuyerType?
+  /// Steps 1, 3 and 4 data (shape: src/domain/onboarding.ts ProfileData).
+  profile               Json?
+  submittedAt           DateTime?
+  decidedAt             DateTime?
+  decidedById           String?
+  correctionNotes       String?
+  rejectionReason       String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
 
   documents VerificationDocument[]
   checklist KycChecklistItem[]

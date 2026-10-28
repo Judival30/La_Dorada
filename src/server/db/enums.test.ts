@@ -12,6 +12,9 @@ import {
   OpportunityType,
   Role,
   RiskLevel,
+  ReviewStatus,
+  BuyerType,
+  VerificationDocumentType,
   Sector,
   UserStatus,
 } from '@prisma/client';
@@ -20,6 +23,7 @@ import { ACCESS_STATUSES } from '@/domain/machines/access';
 import { DEAL_STATUSES } from '@/domain/machines/deal';
 import { OPPORTUNITY_STATUSES } from '@/domain/machines/opportunity';
 import { USER_STATUSES } from '@/domain/machines/user';
+import { BUYER_TYPES, REVIEW_STATUSES, VERIFICATION_DOCUMENT_TYPES } from '@/domain/onboarding';
 import type { Role as DomainRole } from '@/domain/roles';
 import { SECTORS } from '@/domain/sectors';
 import type {
@@ -34,6 +38,9 @@ describe('Prisma enums mirror domain literals', () => {
     ['AccessStatus', AccessStatus, ACCESS_STATUSES],
     ['DealStatus', DealStatus, DEAL_STATUSES],
     ['Sector', Sector, SECTORS],
+    ['VerificationDocumentType', VerificationDocumentType, VERIFICATION_DOCUMENT_TYPES],
+    ['BuyerType', BuyerType, BUYER_TYPES],
+    ['ReviewStatus', ReviewStatus, REVIEW_STATUSES],
   ] as const)('%s', (_name, prismaEnum, domain) => {
     expect(Object.values(prismaEnum)).toEqual([...domain]);
   });
