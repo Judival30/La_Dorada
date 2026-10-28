@@ -2,7 +2,7 @@
 
 La Dorada es un marketplace colombiano de fusiones y adquisiciones (M&A) que conecta a vendedores de empresas con compradores calificados (fondos, empresas e inversionistas). Cada rol (comprador, vendedor y Back Office) tiene su propio espacio, con confidencialidad por etapas (teaser, NDA, cuarto de datos), valoración orientativa y trazabilidad de cada acción en un registro de auditoría append-only. Es un proyecto académico: los datos son ficticios y las integraciones externas están simuladas.
 
-Estado: **M1 (Fundaciones)** completo: modelo de datos, autenticación por sesiones, roles, pantallas base de cada rol, onboarding (estado de revisión) y sistema de diseño.
+Estado: **M1 (Fundaciones)** y **M2 (Alta y validación)** completos: modelo de datos, autenticación por sesiones, roles, pantallas base de cada rol, registro, asistente de acreditación, validación de usuarios en el Back Office y sistema de diseño.
 
 ## Prerrequisitos
 
@@ -31,9 +31,30 @@ Todos los datos son **ficticios** (NIT con prefijo `900.`, correos bajo `demo.la
 | Comprador | `comprador@demo.ladorada.co` | Habilitado | `/marketplace` |
 | Vendedor | `vendedor@demo.ladorada.co` | Habilitado | `/seller` |
 | Back Office (admin) | `admin@demo.ladorada.co` | Habilitado | `/bo` |
-| Comprador en revisión | `revision@demo.ladorada.co` | En revisión | `/onboarding` |
+| Comprador en revisión | `revision@demo.ladorada.co` | En revisión | `/onboarding` (aparece también en la cola de `/bo/users`) |
+
+Además, el seed crea solicitantes en estado «En revisión» que aparecen en la cola de `/bo/users` junto con `revision@demo.ladorada.co`: `sandra.cardenas@demo.ladorada.co` (vendedora), `andres.bernal@demo.ladorada.co` y `felipe.zapata@demo.ladorada.co` (compradores) y `diana.lozano@demo.ladorada.co` (vendedora). También hay solicitantes pendientes, con correcciones solicitadas, rechazados y bloqueados para probar los demás estados. Misma contraseña.
 
 La pantalla de login muestra las tres primeras cuentas solo fuera de producción.
+
+## Registro y validación (M2)
+
+**Registro.** Una persona nueva entra a `/registro`, elige si es comprador o vendedor, crea su cuenta y acepta el tratamiento de datos (Habeas Data). Al registrarse se abre sesión de inmediato y se la lleva a `/onboarding`.
+
+**Asistente de acreditación (`/onboarding`, 6 pasos).**
+
+1. Perfil personal: nombre, celular y cargo.
+2. Verificación de identidad: cédula (KYC simulado).
+3. Vendedor: representación legal. Comprador: a quién representa (persona natural o entidad).
+4. Vendedor: datos de la empresa (razón social, NIT, sector, ubicación). Comprador: criterios de inversión.
+5. Documentos de soporte.
+6. Revisión y envío al Back Office.
+
+**Documentos requeridos y por qué.** La cédula la piden todos, para verificar identidad. Cámara de Comercio y RUT acreditan que la entidad existe y su situación tributaria; los piden a vendedores y a compradores que no son personas naturales (fondo, estratégico, family office). Un inversionista ángel presenta cédula y RUT. Si el vendedor no es el representante legal, también debe adjuntar un poder que acredite su autorización. Se aceptan archivos de hasta 10 MB y el tipo se verifica por su contenido (ADR-010).
+
+**Back Office (`/bo/users`).** Muestra la cola de solicitudes con filtros por estado. Al abrir una (`/bo/users/[id]`) el revisor ve el perfil, abre cada documento y lo aprueba o rechaza, y completa la lista de verificación KYC (identidad, representación legal, listas restrictivas, documentos vigentes). Puede aprobar (el usuario queda habilitado), solicitar correcciones con un motivo, rechazar o bloquear. Cada decisión se audita y notifica al usuario por correo.
+
+Mailpit en http://localhost:8025 para ver los correos de notificación.
 
 ## Scripts
 
@@ -57,11 +78,11 @@ La pantalla de login muestra las tres primeras cuentas solo fuera de producción
 pnpm test        # unitarias
 pnpm test:int    # integración (necesita `db` arriba)
 pnpm e2e         # E2E (Playwright; necesita la BD con los datos de demo)
-                # Limitadores en memoria (registro: 5 por 15 min por IP; login: 5 por min): la suite crea 4 cuentas y unos 8 inicios de sesión (por debajo de 5 por minuto por correo); si repites corridas seguidas, reinicia pnpm dev
+                # Limitadores en memoria: la suite crea 4 cuentas; ejecútala como máximo una vez cada 15 min y reinicia pnpm dev entre corridas
 ```
 
 - `pnpm test:int` descarta y recrea el esquema de la base de `DATABASE_URL_TEST` (su nombre debe terminar en `_test`) y aplica las migraciones. Ver ADR-009.
-- **Limitador de login:** el login permite un número limitado de intentos por ventana. Las pruebas E2E inician sesión varias veces, así que se pueden ejecutar unas **8 veces cada 15 minutos**. El limitador vive en memoria: reinicia `pnpm dev` para reiniciarlo.
+- **Limitadores:** el registro permite 5 por 15 min por IP; el login, 5 por minuto por IP+correo y 20 por 15 min por correo. La suite E2E crea 4 cuentas, así que puede ejecutarse aproximadamente **una vez cada 15 minutos**. Los limitadores viven en memoria: reinicia `pnpm dev` entre corridas consecutivas.
 
 ## Ejecución completa en Docker
 
@@ -94,7 +115,7 @@ src/app/          Rutas Next.js: (auth) login, (buyer), (seller), (backoffice), 
 src/components/   Componentes de marca (ld/) y shadcn/ui
 src/config/       Navegación por rol
 prisma/           schema.prisma, migrations/, seed/
-e2e/              Pruebas Playwright (auth/, security/, screens/)
+e2e/              Pruebas Playwright (auth/, security/, screens/, H06, H11, wizard)
 docker/           Inicialización de la BD
 docs/             ADR, arquitectura, diseño, trazabilidad, plan
 ```
@@ -103,7 +124,7 @@ docs/             ADR, arquitectura, diseño, trazabilidad, plan
 
 - [Especificación](docs/superpowers/specs/2026-10-26-la-dorada-design.md)
 - [Arquitectura](docs/arquitectura.md)
-- [ADR](docs/adr/)
+- [ADR](docs/adr/) (ADR-010: subidas y documentos)
 - [Sistema de diseño](docs/design-system.md)
 - [Trazabilidad H1–H15](docs/trazabilidad.md)
 - [Preguntas abiertas](docs/preguntas-abiertas.md)

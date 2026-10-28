@@ -13,9 +13,24 @@ Salida de la revisión final de M1 (2026-10-27). Cada ítem indica el milestone 
 | P7 | `canAcceptOffer(lastOfferAuthor, actor)` junto a `dealMachine` (contraparte) | M4 | |
 | P8 | `Deal.stage` almacenado vs. derivado del estado (spec §5) | M4 | Preferir derivarlo |
 | P9 | Limitador por IP pura (password spraying) y `.max(2048)` en `next` | M6 | |
-| P10 | Logout / borrado de sesión sin auditar | M2 | Decidir con el helper `audited()` |
-| P11 | Middleware re-emite la cookie también en POST de logout | M2 (opcional) | Sin impacto de seguridad |
-| P12 | Enlaces de la barra lateral a pantallas inexistentes dan 404 | M2+ | Marcar "pronto" o crear la ruta |
+| P10 | ~~Logout / borrado de sesión sin auditar~~ | M2 | **Resuelto (M2):** el logout queda auditado |
+| P11 | Middleware re-emite la cookie también en POST de logout | M2 (opcional) | Sin impacto de seguridad. **Sigue abierto** (opcional) |
+| P12 | ~~Enlaces de la barra lateral a pantallas inexistentes dan 404~~ | M2+ | **Resuelto (M2):** la navegación los marca "Pronto" |
 | P13 | Icono PWA solo SVG; faltan PNG 192/512 | M6 | |
 | P14 | 8 archivos fallan `prettier --check`; CI no corre Prettier | M6 | |
-| P15 | Smoke test de URLs prefirmadas con RustFS | M2 (adaptador de almacenamiento) | Alternativa: SeaweedFS |
+| P15 | ~~Smoke test de URLs prefirmadas con RustFS~~ | M2 (adaptador de almacenamiento) | **Resuelto (M2):** las URLs prefirmadas funcionan con RustFS |
+
+## Pendientes de M2
+
+Salida de M2 (Alta y validación), diferidos a milestones posteriores.
+
+| # | Pendiente | Dónde | Notas |
+|---|---|---|---|
+| M2-1 | Un usuario bloqueado puede iniciar sesión y ve la vista de bloqueo en `/onboarding` (sin escrituras) | Decisión vigente | Intencional; revisar si se prefiere cerrar la sesión |
+| M2-2 | Limitadores en memoria (registro y login) e IP de cliente sin proxy confiable | M6 (antes de desplegar) | Usar almacén compartido y configurar proxy de confianza |
+| M2-3 | El ítem de listas restrictivas (screening) del checklist KYC se puede marcar a mano | Pregunta de producto | Definir si requiere evidencia o proveedor real |
+| M2-4 | `listUsersForReview` se usa para contar (`/bo` hace 4 consultas de lista para los totales) | M3 | Agregar un helper de conteo |
+| M2-5 | La spec de capturas (`e2e/screens`) es opt-in y no corre por defecto | M6 | Valorar incluirla en CI |
+| M2-6 | Enumeración de correos por el registro con sesión inmediata | Riesgo aceptado | Reevaluar si se añade verificación de correo |
+| M2-7 | SMTP sin autenticación ni TLS | M6 (producción) | Mailpit local lo permite; configurar SMTP real con TLS |
+| M2-8 | Textos legales (consentimiento y política de datos) son borradores | Antes de uso real | Revisión por asesor legal |

@@ -123,3 +123,10 @@ El Back Office ve el cálculo desglosado; el comprador ve rango, score y aviso "
 - **`AuditLog` append-only:** la migración `20261027051410_audit_log_append_only` bloquea `UPDATE` y `DELETE` con un trigger. Su comentario de cabecera quedó desactualizado respecto al bloqueo de `TRUNCATE`, pero no se edita porque cambiaría su checksum en bases ya migradas. `TRUNCATE` queda bloqueado por la migración posterior `20261027060000_audit_log_block_truncate`.
 - **Migraciones en Docker:** el servicio one-shot `migrate` (etapa `builder`, con dependencias de desarrollo) ejecuta `prisma migrate deploy`; `app` arranca solo cuando termina con éxito (la imagen de producción no incluye el CLI de Prisma).
 - **Resets de BD:** ver ADR-009.
+
+## 5. Notas de implementación de M2
+
+- **Servicios:** `registration.ts` (alta de usuario con consentimiento y sesión inmediata), `onboarding.ts` (perfil por pasos, documentos y envío a revisión) y `user-review.ts` (cola, decisiones y checklist KYC del Back Office). Las reglas puras (pasos, documentos requeridos, checklist por defecto) viven en `src/domain/onboarding.ts`.
+- **Estados de usuario:** `PENDING → IN_REVIEW → ENABLED`, con `CORRECTIONS_REQUESTED`, `REJECTED` y `BLOCKED`. Cada decisión se audita y notifica por correo (Mailpit en desarrollo).
+- **Documentos:** se suben y leen por route handlers en `src/app/api/verification/documents`, con almacenamiento S3 privado. Ver ADR-010.
+- **Datos de demo:** el seed crea un `VerificationCase` coherente por cada comprador y vendedor, para poblar la cola de `/bo/users`.
