@@ -100,11 +100,13 @@ enum RiskLevel {
 }
 
 /// Evaluation item status as displayed in the matrix (spec §4).
+/// Mapped to MatrixStatus / RiskLevel in src/domain/evaluation.ts (P3).
 enum EvaluationItemStatus {
   COMPLETED
   APPROVED
   MEDIUM_RISK
   TO_CLARIFY
+  HIGH_RISK
 }
 
 enum EvaluationItemKind {
@@ -430,7 +432,10 @@ model Opportunity {
   horizon           String?
   idealBuyerProfile String?
   status            OpportunityStatus @default(DRAFT)
+  /// Seed-only SVG data URL; replaced by teaserImageKey (removed in M3 Task 8).
   teaserImage       String?
+  /// S3 key `teaser/<opportunityId>/<uuid>` of the uploaded teaser image.
+  teaserImageKey    String?
   teaserVideo       String?
   publishedAt       DateTime?
   createdAt         DateTime          @default(now())
@@ -470,6 +475,8 @@ model DataRoomFolder {
   opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Restrict)
   name          String
   position      Int         @default(0)
+  /// Required for evaluation (counts toward information quality).
+  required      Boolean     @default(false)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -504,22 +511,20 @@ model Document {
 }
 
 model Evaluation {
-  id                   String       @id @default(cuid())
-  opportunityId        String       @unique
-  opportunity          Opportunity  @relation(fields: [opportunityId], references: [id], onDelete: Restrict)
-  valuationLow         BigInt
-  valuationHigh        BigInt
+  id            String      @id @default(cuid())
+  opportunityId String      @unique
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Restrict)
+  valuationLow  BigInt
+  valuationHigh BigInt
   /// 0–100.
-  score                Int
-  docsDelivered        Int
-  docsRequired         Int
-  financialConsistency MatrixStatus
-  customerDependency   RiskLevel
-  legalContingencies   RiskLevel
-  /// Score breakdown shown to Back Office.
-  breakdown            Json?
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
+  score         Int
+  docsDelivered Int
+  docsRequired  Int
+  /// Score breakdown shown to Back Office. Qualitative inputs come only from
+  /// EvaluationItem (P3, single source).
+  breakdown     Json?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
   items EvaluationItem[]
 }
