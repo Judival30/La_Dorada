@@ -62,6 +62,27 @@ const SPECS: Record<NotificationKind, Spec> = {
       'Hay una nueva solicitud de verificación en la cola del Back Office esperando revisión.',
     ],
   },
+  OPPORTUNITY_PUBLISHED: {
+    subject: 'Tu oportunidad fue publicada',
+    lines: (n) => [
+      `Hola ${n},`,
+      '¡Buenas noticias! El equipo de La Dorada aprobó tu oportunidad y ya está publicada en el marketplace para compradores verificados.',
+    ],
+  },
+  OPPORTUNITY_ADJUSTMENTS: {
+    subject: 'Tu oportunidad necesita ajustes',
+    lines: (n) => [
+      `Hola ${n},`,
+      'Revisamos tu oportunidad y necesitamos algunos ajustes antes de publicarla. Ingresa a La Dorada para ver las observaciones y volver a enviarla.',
+    ],
+  },
+  OPPORTUNITY_REJECTED: {
+    subject: 'Resultado de la revisión de tu oportunidad',
+    lines: (n) => [
+      `Hola ${n},`,
+      'Lamentablemente no pudimos publicar tu oportunidad. Ingresa a La Dorada para conocer el motivo.',
+    ],
+  },
 };
 
 /** Builds subject, plain text and simple HTML for `kind`. Interpolated values are HTML-escaped. */

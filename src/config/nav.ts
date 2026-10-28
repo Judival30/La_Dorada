@@ -52,8 +52,8 @@ export const NAV: Record<Role, NavItem[]> = {
   BACKOFFICE: [
     { href: '/bo', label: 'Inicio', icon: House, available: true },
     { href: '/bo/users', label: 'Usuarios', icon: Users, available: true },
-    { href: '/bo/companies', label: 'Empresas', icon: Building2, available: false },
-    { href: '/bo/opportunities', label: 'Oportunidades', icon: Lightbulb, available: false },
+    { href: '/bo/companies', label: 'Empresas', icon: Building2, available: true },
+    { href: '/bo/companies?estado=todas', label: 'Oportunidades', icon: Lightbulb, available: true },
     { href: '/bo/confidentiality', label: 'Confidencialidad', icon: ShieldCheck, available: false },
     { href: '/bo/transactions', label: 'Transacciones', icon: ArrowLeftRight, available: false },
     { href: '/bo/reports', label: 'Reportes', icon: ChartColumn, available: false },

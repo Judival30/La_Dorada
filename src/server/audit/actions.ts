@@ -23,6 +23,11 @@ export const AUDIT_ACTIONS = [
   'USER_REJECTED',
   'USER_BLOCKED',
   'USER_UNBLOCKED',
+  // Back Office opportunity evaluation (M3)
+  'EVALUATION_UPDATED',
+  'OPPORTUNITY_APPROVED',
+  'OPPORTUNITY_ADJUSTMENTS_REQUESTED',
+  'OPPORTUNITY_REJECTED',
   // Demo data (M1)
   'SEED_LOADED',
   // Confidential data room, spec R2 / §6 (M4)
