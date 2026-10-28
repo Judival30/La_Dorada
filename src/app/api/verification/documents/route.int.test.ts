@@ -13,6 +13,7 @@ vi.mock('next/headers', () => ({
   headers: async () => new Headers(),
 }));
 
+import { resetRateLimiters, uploadLimiter } from '@/server/auth/rate-limit';
 import { createSession } from '@/server/auth/session';
 import { db } from '@/server/db';
 import { resetAdaptersForTests as resetMail } from '@/server/mail';
@@ -71,7 +72,10 @@ beforeAll(async () => {
   resetMail();
 });
 
-beforeEach(() => useDriver('memory'));
+beforeEach(() => {
+  useDriver('memory');
+  resetRateLimiters();
+});
 
 afterAll(async () => {
   await cleanupTestUsers(tag);
@@ -79,6 +83,29 @@ afterAll(async () => {
 });
 
 describe('POST /api/verification/documents', () => {
+  it('rate-limits uploads to 20 per 10 minutes per user with 429, before reading the body', async () => {
+    const u = await createTestUser(tag, 'SELLER');
+    const other = await createTestUser(tag, 'SELLER');
+    for (let i = 0; i < 19; i++) expect(uploadLimiter.take(u.id)).toBe(true);
+    await upload(u, 'RUT'); // the 20th upload in the window still goes through
+
+    await signIn(u);
+    const req = uploadRequest({ type: 'RUT', file: { bytes: fixtures.pdf(), name: 'rut.pdf' } });
+    const res = await POST(req);
+    expect(res.status).toBe(429);
+    expect(await res.json()).toEqual({
+      error: {
+        code: 'RATE_LIMITED',
+        message: 'Subiste demasiados archivos seguidos. Espera unos minutos e intenta de nuevo.',
+      },
+    });
+    expect(req.bodyUsed).toBe(false);
+    expect(await docCount(u)).toBe(1);
+
+    // The bucket is per user.
+    await upload(other, 'RUT');
+  });
+
   it('uploads a valid PDF to RustFS and the owner reads it back through a 302 to a signed URL', async () => {
     useDriver('s3');
     const u = await createTestUser(tag, 'SELLER');

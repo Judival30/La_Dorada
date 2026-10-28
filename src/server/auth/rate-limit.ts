@@ -62,3 +62,21 @@ export const registerIpLimiter = createRateLimiter({ capacity: 5, windowMs: 15 *
 export function resetRegisterLimiter(): void {
   registerIpLimiter.reset();
 }
+
+/**
+ * 20 verification-document uploads per 10 minutes per user id (spec §3.2).
+ * Checked before the request body is read.
+ */
+export const uploadLimiter = createRateLimiter({ capacity: 20, windowMs: 10 * 60_000 });
+
+/** Test helper: forgets every recorded upload. */
+export function resetUploadLimiter(): void {
+  uploadLimiter.reset();
+}
+
+/** Test helper: resets every limiter in this module (login, sign-up and upload). */
+export function resetRateLimiters(): void {
+  resetLoginLimiter();
+  resetRegisterLimiter();
+  resetUploadLimiter();
+}
