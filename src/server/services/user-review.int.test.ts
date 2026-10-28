@@ -402,6 +402,83 @@ describe('reviewDocument / toggleKycItem / runKycScreening', () => {
   });
 });
 
+describe('corrections round invalidates stale approvals', () => {
+  /** In review → every document APPROVED and every KYC item done → corrections requested. */
+  async function correctionsAfterFullReview() {
+    const u = await inReviewSeller();
+    await approveAllDocuments(u.caseId);
+    await checkAllKyc(u.caseId);
+    await decideUser(bo, u.id, { kind: 'REQUEST_CORRECTIONS', notes: NOTES });
+    return u;
+  }
+  const docStatus = async (caseId: string) =>
+    Object.fromEntries(
+      (await db.verificationDocument.findMany({ where: { verificationCaseId: caseId } })).map(
+        (d) => [d.type, d.reviewStatus],
+      ),
+    );
+
+  it('name change → resubmit → APPROVE throws ValidationError; user stays IN_REVIEW; KYC not done', async () => {
+    const u = await correctionsAfterFullReview();
+    await saveStep(u.id, 1, { ...SELLER_STEPS[1], name: 'Valentina Ríos Mejía' });
+    expect(await docStatus(u.caseId)).toEqual({
+      NATIONAL_ID: 'PENDING',
+      CHAMBER_OF_COMMERCE: 'APPROVED',
+      RUT: 'APPROVED',
+    });
+    await submitForReview(u.id);
+
+    const items = await db.kycChecklistItem.findMany({ where: { verificationCaseId: u.caseId } });
+    expect(items.length).toBeGreaterThan(0);
+    expect(items.every((i) => !i.done && i.checkedById === null && i.checkedAt === null)).toBe(
+      true,
+    );
+    await expect(decideUser(bo, u.id, { kind: 'APPROVE' })).rejects.toBeInstanceOf(ValidationError);
+    expect((await db.user.findUniqueOrThrow({ where: { id: u.id } })).status).toBe('IN_REVIEW');
+  });
+
+  it('resubmit resets the KYC checklist even when nothing changed; documents keep their status', async () => {
+    const u = await correctionsAfterFullReview();
+    await saveStep(u.id, 1, SELLER_STEPS[1]);
+    await saveStep(u.id, 3, SELLER_STEPS[3]);
+    await saveStep(u.id, 4, SELLER_STEPS[4]);
+    await submitForReview(u.id);
+    expect(
+      await db.kycChecklistItem.count({ where: { verificationCaseId: u.caseId, done: true } }),
+    ).toBe(0);
+    expect(Object.values(await docStatus(u.caseId)).every((s) => s === 'APPROVED')).toBe(true);
+  });
+
+  it('legal-rep change resets Cámara de Comercio and poder; NIT change resets Cámara and RUT', async () => {
+    const u = await correctionsAfterFullReview();
+    await uploadVerificationDocument(u.id, 'POWER_OF_ATTORNEY', pdf());
+    await db.verificationDocument.updateMany({
+      where: { verificationCaseId: u.caseId },
+      data: { reviewStatus: 'APPROVED' },
+    });
+
+    await saveStep(u.id, 3, { isLegalRepresentative: false });
+    expect(await docStatus(u.caseId)).toEqual({
+      NATIONAL_ID: 'APPROVED',
+      CHAMBER_OF_COMMERCE: 'PENDING',
+      RUT: 'APPROVED',
+      POWER_OF_ATTORNEY: 'PENDING',
+    });
+
+    await db.verificationDocument.updateMany({
+      where: { verificationCaseId: u.caseId },
+      data: { reviewStatus: 'APPROVED' },
+    });
+    await saveStep(u.id, 4, { ...SELLER_STEPS[4], nit: '900.765.432-1' });
+    expect(await docStatus(u.caseId)).toEqual({
+      NATIONAL_ID: 'APPROVED',
+      CHAMBER_OF_COMMERCE: 'PENDING',
+      RUT: 'PENDING',
+      POWER_OF_ATTORNEY: 'APPROVED',
+    });
+  });
+});
+
 describe('blockUser / unblockUser', () => {
   it('block invalidates every session in the same transaction, notifies and audits', async () => {
     const u = await createTestUser(tag, 'BUYER', 'ENABLED');

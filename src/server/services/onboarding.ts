@@ -185,6 +185,12 @@ export async function getOnboardingState(userId: string): Promise<OnboardingView
 
 // ───────────────────────────── steps ─────────────────────────────
 
+/** The stored profile fields whose change invalidates a document review. */
+type StoredProfileFields = {
+  step1?: { name?: unknown };
+  step4?: { nit?: unknown; legalName?: unknown };
+};
+
 /**
  * Validates `data` with the step's `PROFILE_SCHEMAS` entry for the user's role
  * (throws `ZodError` → 422) and stores it as `profile.step<N>`, replacing that
@@ -195,6 +201,12 @@ export async function getOnboardingState(userId: string): Promise<OnboardingView
  * - step 4 buyer → upsert `BuyerPreferences` (millions → BigInt pesos).
  * Seller step 4 only lives in the profile (Organization/Company come in M3).
  * Department / regions membership in `DEPARTMENTS` is enforced by the domain schema.
+ *
+ * During CORRECTIONS_REQUESTED, changing data a document vouches for sends that
+ * document back to `reviewStatus = PENDING`, so an earlier approval cannot
+ * satisfy the APPROVE guard: step 1 `name` → NATIONAL_ID; step 3
+ * `isLegalRepresentative` / `buyerType` → CHAMBER_OF_COMMERCE, POWER_OF_ATTORNEY;
+ * seller step 4 `nit` / `legalName` → CHAMBER_OF_COMMERCE, RUT.
  */
 export async function saveStep(userId: string, step: 1 | 3 | 4, data: unknown): Promise<void> {
   if (step !== 1 && step !== 3 && step !== 4) throw new ValidationError('Paso inválido.');
@@ -205,24 +217,38 @@ export async function saveStep(userId: string, step: 1 | 3 | 4, data: unknown): 
     assertEditable(user.status);
     const vc = await latestCase(tx, userId);
     const profile = readProfile(vc.profile);
+    const stored = readProfile(vc.profile) as StoredProfileFields;
     const caseData: Prisma.VerificationCaseUpdateInput = {};
+    /** Document types whose earlier review no longer matches the data (corrections round). */
+    const invalidated = new Set<VerificationDocumentType>();
 
     if (step === 1) {
       const v = PROFILE_SCHEMAS.step1.parse(data);
+      if (stored.step1?.name !== v.name) invalidated.add('NATIONAL_ID');
       profile.step1 = v;
       await tx.user.update({ where: { id: userId }, data: { name: v.name, phone: v.phone } });
     } else if (step === 3) {
       if (role === 'SELLER') {
         const v = PROFILE_SCHEMAS.step3Seller.parse(data);
+        if (vc.isLegalRepresentative !== v.isLegalRepresentative) {
+          invalidated.add('CHAMBER_OF_COMMERCE').add('POWER_OF_ATTORNEY');
+        }
         profile.step3 = v;
         caseData.isLegalRepresentative = v.isLegalRepresentative;
       } else {
         const v = PROFILE_SCHEMAS.step3Buyer.parse(data);
+        if (vc.buyerType !== v.buyerType) {
+          invalidated.add('CHAMBER_OF_COMMERCE').add('POWER_OF_ATTORNEY');
+        }
         profile.step3 = v;
         caseData.buyerType = v.buyerType;
       }
     } else if (role === 'SELLER') {
-      profile.step4 = PROFILE_SCHEMAS.step4Seller.parse(data);
+      const v = PROFILE_SCHEMAS.step4Seller.parse(data);
+      if (stored.step4?.nit !== v.nit || stored.step4?.legalName !== v.legalName) {
+        invalidated.add('CHAMBER_OF_COMMERCE').add('RUT');
+      }
+      profile.step4 = v;
     } else {
       const v = PROFILE_SCHEMAS.step4Buyer.parse(data);
       profile.step4 = v;
@@ -236,6 +262,13 @@ export async function saveStep(userId: string, step: 1 | 3 | 4, data: unknown): 
         where: { userId },
         create: { userId, ...prefs },
         update: prefs,
+      });
+    }
+
+    if (user.status === 'CORRECTIONS_REQUESTED' && invalidated.size > 0) {
+      await tx.verificationDocument.updateMany({
+        where: { verificationCaseId: vc.id, type: { in: [...invalidated] } },
+        data: { reviewStatus: 'PENDING' },
       });
     }
 
@@ -454,7 +487,8 @@ export async function documentReadUrl(actor: SessionUser, documentId: string): P
  * one per line), then `userMachine` SUBMIT (from PENDING) or RESUBMIT (from
  * CORRECTIONS_REQUESTED), case → IN_REVIEW with `submittedAt`, in-app
  * notifications to the user and every ENABLED BACKOFFICE (payload `{ userId }`),
- * audit `ONBOARDING_SUBMITTED`. Emails go out after commit.
+ * audit `ONBOARDING_SUBMITTED`. On RESUBMIT every KYC checklist item of the
+ * case is reset (not done, no checker) in the same transaction. Emails go out after commit.
  */
 export async function submitForReview(userId: string): Promise<void> {
   const emails = await audited(async (tx) => {
@@ -486,6 +520,13 @@ export async function submitForReview(userId: string): Promise<void> {
       where: { id: vc.id },
       data: { status: 'IN_REVIEW', submittedAt: new Date(), step: 6 },
     });
+    if (event === 'RESUBMIT') {
+      // A new review round: earlier KYC ticks vouched for data that may have changed.
+      await tx.kycChecklistItem.updateMany({
+        where: { verificationCaseId: vc.id },
+        data: { done: false, checkedById: null, checkedAt: null },
+      });
+    }
 
     await notify(tx, { userId, kind: 'ONBOARDING_SUBMITTED', payload: { caseId: vc.id } });
     const reviewers = await tx.user.findMany({
