@@ -14,7 +14,7 @@ export function EmptyState({ title, description, icon: Icon, action, className }
   return (
     <section
       className={cn(
-        'flex flex-col items-start gap-3 rounded-[var(--ld-radius-panel)] border border-dashed border-[#b9c5e0] bg-ld-surface px-5 py-8 md:px-8 md:py-10',
+        'flex flex-col items-start gap-3 rounded-[var(--ld-radius-panel)] border border-dashed border-ld-border-strong bg-ld-surface px-5 py-8 md:px-8 md:py-10',
         className,
       )}
     >

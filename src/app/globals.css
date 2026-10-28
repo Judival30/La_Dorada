@@ -188,7 +188,7 @@
     width: 100%;
     min-height: 2.75rem;
     border-radius: var(--ld-radius-control);
-    border: 1px solid #b9c5e0;
+    border: 1px solid var(--ld-border-strong);
     background: var(--ld-surface);
     padding: 0 0.875rem;
     color: var(--ld-navy);

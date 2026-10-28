@@ -38,6 +38,22 @@ function NavList({ role, onNavigate }: { role: Role; onNavigate?: () => void }) 
         {items.map((item) => {
           const active = isActive(item, pathname, homes);
           const Icon = item.icon;
+          if (!item.available) {
+            return (
+              <li key={item.href}>
+                <span
+                  aria-disabled="true"
+                  className="flex min-h-11 cursor-not-allowed items-center gap-3 rounded-[var(--ld-radius-nav)] px-3 text-[0.9375rem] font-medium text-ld-muted"
+                >
+                  <Icon aria-hidden="true" className="size-5 shrink-0 text-ld-border-strong" />
+                  <span className="flex-1">{item.label}</span>
+                  <span className="ld-note rounded-full bg-[var(--ld-neutral-soft)] px-2 py-0.5 text-[var(--ld-neutral-ink)]">
+                    Pronto
+                  </span>
+                </span>
+              </li>
+            );
+          }
           return (
             <li key={item.href}>
               <Link

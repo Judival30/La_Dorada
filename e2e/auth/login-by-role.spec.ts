@@ -22,7 +22,7 @@ test.describe('login by role', () => {
       const first = NAV[account.role][0];
       expect(first).toBeDefined();
       await expect(sidebar.getByRole('link', { name: first!.label })).toBeVisible();
-      await expect(sidebar.getByRole('link')).toHaveCount(NAV[account.role].length);
+      await expect(sidebar.getByRole('link')).toHaveCount(NAV[account.role].filter((i) => i.available).length);
     });
   }
 
