@@ -8,6 +8,7 @@ import {
   ValidationError,
 } from '@/domain/errors';
 import { DEFAULT_KYC_CHECKLIST } from '@/domain/onboarding';
+import { audited } from '@/server/audit/audited';
 import { createSession, validateSession, type SessionUser } from '@/server/auth/session';
 import { db } from '@/server/db';
 import { getMailer, resetAdaptersForTests as resetMail } from '@/server/mail';
@@ -556,10 +557,12 @@ describe('blockUser / unblockUser', () => {
 });
 
 describe('listUsersForReview', () => {
-  it('orders IN_REVIEW, CORRECTIONS_REQUESTED, PENDING, then the rest; newest first in each group; never BACKOFFICE', async () => {
+  it('orders IN_REVIEW, CORRECTIONS_REQUESTED, PENDING, then the rest; FIFO by submission in each group (never-submitted last, then newest first); never BACKOFFICE', async () => {
     const t = `${tag}lst`;
-    const mk = async (status: UserStatus) => {
+    const hourAgo = (h: number) => new Date(Date.now() - h * 3_600_000);
+    const mk = async (status: UserStatus, submittedAt: Date | null = null) => {
       const u = await createTestUser(t, 'SELLER', status);
+      await db.verificationCase.update({ where: { id: u.caseId ?? '' }, data: { submittedAt } });
       // Distinct, increasing updatedAt.
       await new Promise((r) => setTimeout(r, 5));
       await db.user.update({ where: { id: u.id }, data: { updatedAt: new Date() } });
@@ -567,17 +570,19 @@ describe('listUsersForReview', () => {
     };
     const enabled = await mk('ENABLED');
     const pending = await mk('PENDING');
-    const reviewOld = await mk('IN_REVIEW');
-    const corrections = await mk('CORRECTIONS_REQUESTED');
+    const reviewFirst = await mk('IN_REVIEW', hourAgo(3));
+    const corrections = await mk('CORRECTIONS_REQUESTED', hourAgo(5));
     const rejected = await mk('REJECTED');
-    const reviewNew = await mk('IN_REVIEW');
+    const reviewNoDate = await mk('IN_REVIEW');
+    const reviewSecond = await mk('IN_REVIEW', hourAgo(1));
     await createTestUser(t, 'BACKOFFICE', 'ENABLED');
 
     const { items, total } = await listUsersForReview(bo, { q: t });
-    expect(total).toBe(6);
+    expect(total).toBe(7);
     expect(items.map((i) => i.id)).toEqual([
-      reviewNew,
-      reviewOld,
+      reviewFirst,
+      reviewSecond,
+      reviewNoDate,
       corrections,
       pending,
       rejected,
@@ -586,7 +591,7 @@ describe('listUsersForReview', () => {
     expect(items.every((i) => i.role !== ('BACKOFFICE' as string))).toBe(true);
 
     const filtered = await listUsersForReview(bo, { q: t, status: 'IN_REVIEW' });
-    expect(filtered.items.map((i) => i.id)).toEqual([reviewNew, reviewOld]);
+    expect(filtered.items.map((i) => i.id)).toEqual([reviewFirst, reviewSecond, reviewNoDate]);
     expect((await listUsersForReview(bo, { q: t, role: 'BUYER' })).total).toBe(0);
   });
 
@@ -644,6 +649,20 @@ describe('getUserReview', () => {
       where: { verificationCaseId: u.caseId, type: 'RUT' },
     });
     await reviewDocument(bo, doc.id, 'APPROVED');
+    // Not onboarding activity: a login and a (future M4) data-room download by the applicant.
+    await audited(async () => ({
+      result: undefined,
+      audit: { actorId: u.id, action: 'LOGIN_SUCCEEDED', entity: 'User', entityId: u.id },
+    }));
+    await audited(async () => ({
+      result: undefined,
+      audit: {
+        actorId: u.id,
+        action: 'DOCUMENT_DOWNLOADED',
+        entity: 'Document',
+        entityId: randomUUID(),
+      },
+    }));
     await runKycScreening(bo, u.id);
 
     const r = await getUserReview(bo, u.id);
@@ -666,6 +685,9 @@ describe('getUserReview', () => {
     expect(actions).toContain('VERIFICATION_DOCUMENT_REVIEWED');
     expect(actions).toContain('ONBOARDING_SUBMITTED');
     expect(actions).toContain('VERIFICATION_DOCUMENT_UPLOADED');
+    expect(actions).toContain('ONBOARDING_STEP_SAVED');
+    expect(actions).not.toContain('LOGIN_SUCCEEDED');
+    expect(actions).not.toContain('DOCUMENT_DOWNLOADED');
     expect(r.history[0]).toMatchObject({ actorName: 'Revisora Back Office' });
     expect(r.history[0]?.at).toBeInstanceOf(Date);
     const times = r.history.map((h) => h.at.getTime());

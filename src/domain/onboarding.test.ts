@@ -122,6 +122,13 @@ describe('PROFILE_SCHEMAS', () => {
     expect(PROFILE_SCHEMAS.step4Buyer.safeParse(ok).success).toBe(true);
     expect(PROFILE_SCHEMAS.step4Buyer.safeParse({ ...ok, regions: ['Antioquia', 'Narnia'] }).success).toBe(false);
   });
+  it('step4 seller city is trimmed, required and at most 80 characters', () => {
+    const city = (c: string) => PROFILE_SCHEMAS.step4Seller.safeParse({ ...sellerStep4, city: c });
+    expect(city('   ').success).toBe(false);
+    expect(city('x'.repeat(81)).success).toBe(false);
+    const ok = city('  Medellín  ');
+    expect(ok.success && ok.data.city).toBe('Medellín');
+  });
   it('step4 buyer ticket range', () => {
     const ok = { sectors: ['SALUD'], regions: ['Antioquia'], ticketMinMillions: 100, ticketMaxMillions: 500 };
     expect(PROFILE_SCHEMAS.step4Buyer.safeParse(ok).success).toBe(true);

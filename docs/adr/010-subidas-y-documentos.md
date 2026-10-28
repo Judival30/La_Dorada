@@ -9,7 +9,7 @@ En M2 los solicitantes suben documentos sensibles (cédula, Cámara de Comercio,
 
 ## Decisión
 
-- **Tipo por contenido:** el tipo de archivo se determina leyendo los primeros bytes (magic bytes), no por la extensión ni por el `Content-Type` que declara el cliente. Solo se aceptan los formatos permitidos.
+- **Tipo por contenido:** el tipo de archivo se determina leyendo los primeros bytes (magic bytes), no por la extensión ni por el `Content-Type` que declara el cliente. Solo se aceptan los formatos permitidos: PDF, JPEG y PNG.
 - **Tope de 10 MB** por archivo, validado en el servidor.
 - **Claves S3 aleatorias:** el objeto se guarda con una clave generada, no derivada del nombre original, impredecible y sin datos del usuario. El nombre original se conserva saneado solo como metadato.
 - **Lecturas con URL prefirmada de 60 s:** el bucket es privado. Para leer un documento se emite una URL prefirmada que vence a los 60 segundos, con `Content-Type` y `Content-Disposition` forzados (`ResponseContentType`, `ResponseContentDisposition`), de modo que el navegador no interprete el contenido como HTML.

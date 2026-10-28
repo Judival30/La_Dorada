@@ -58,6 +58,7 @@ async function approveDocuments(skip: readonly string[] = []): Promise<void> {
 
 async function tickAllKyc(): Promise<void> {
   for (const box of await admin.getByRole('checkbox').all()) {
+    await idle();
     if (!(await box.isChecked())) await box.check();
   }
 }
@@ -110,6 +111,10 @@ test('admin reviews documents and KYC, then requests corrections', async () => {
   await approveDocuments(['Cédula de ciudadanía']);
   await admin.getByRole('button', { name: 'Consultar listas restrictivas' }).click();
   await expect(admin.getByText(/Consulta simulada sin coincidencias/)).toBeVisible();
+  // Wait for the refreshed checklist, or the next click could untick the screening item.
+  await expect(
+    admin.getByRole('checkbox', { name: /^Consulta en listas restrictivas/ }),
+  ).toBeChecked();
   await tickAllKyc();
 
   await admin.getByRole('button', { name: 'Solicitar correcciones' }).click();

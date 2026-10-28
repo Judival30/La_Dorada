@@ -58,6 +58,19 @@ export const HISTORY_LIMIT = 50;
 /** Label prefix of the checklist item the screening fills (see DEFAULT_KYC_CHECKLIST). */
 export const SCREENING_ITEM_PREFIX = 'Consulta en listas restrictivas';
 
+/** Entities whose audit rows belong to an applicant's review history. */
+const HISTORY_ENTITIES = ['User', 'VerificationCase', 'VerificationDocument', 'KycChecklistItem'];
+/** Actions the applicant performs that belong to the history (onboarding only, no logins). */
+const APPLICANT_HISTORY_ACTIONS: AuditAction[] = [
+  'USER_REGISTERED',
+  'ONBOARDING_STEP_SAVED',
+  'ONBOARDING_SUBMITTED',
+  'VERIFICATION_DOCUMENT_UPLOADED',
+  'VERIFICATION_DOCUMENT_DELETED',
+  'VERIFICATION_DOCUMENT_VIEWED',
+];
+const LOGIN_ACTIONS: AuditAction[] = ['LOGIN_SUCCEEDED', 'LOGIN_FAILED'];
+
 export type ReviewableRole = OnboardingRole;
 
 export type UserReviewRow = {
@@ -236,7 +249,8 @@ function likePattern(q: string): string {
  * filtered by role, status and `q` (case-insensitive, matched against the
  * name, email, linked organization name and the company / entity name typed in
  * the wizard). Ordered IN_REVIEW, CORRECTIONS_REQUESTED, PENDING, then the
- * rest; `updatedAt` descending inside each group. Pages of `REVIEW_PAGE_SIZE`.
+ * rest; inside each group FIFO by the latest case's `submittedAt` (never
+ * submitted last), then `updatedAt` descending. Pages of `REVIEW_PAGE_SIZE`.
  * `docs.delivered` counts the required types with a non-REJECTED document.
  */
 export async function listUsersForReview(
@@ -263,7 +277,7 @@ export async function listUsersForReview(
     FROM "User" u
     LEFT JOIN "Organization" o ON o.id = u."organizationId"
     LEFT JOIN LATERAL (
-      SELECT vc.profile FROM "VerificationCase" vc
+      SELECT vc.profile, vc."submittedAt" FROM "VerificationCase" vc
       WHERE vc."userId" = u.id
       ORDER BY vc."createdAt" DESC, vc.id DESC
       LIMIT 1
@@ -280,6 +294,7 @@ export async function listUsersForReview(
           WHEN 'PENDING' THEN 2
           ELSE 3
         END,
+        c."submittedAt" ASC NULLS LAST,
         u."updatedAt" DESC, u.id
       LIMIT ${REVIEW_PAGE_SIZE} OFFSET ${(page - 1) * REVIEW_PAGE_SIZE}`,
   ]);
@@ -337,9 +352,10 @@ export async function listUsersForReview(
 /**
  * Everything the reviewer sees for one applicant: profile, latest case,
  * documents (metadata only, no storage key / URL), KYC checklist, progress and
- * the last `HISTORY_LIMIT` audit rows about them (entity = the user, actor =
- * the user, or entity = one of their cases, documents or checklist items),
- * newest first. BACKOFFICE or unknown id → `NotFoundError`.
+ * the last `HISTORY_LIMIT` audit rows about them, newest first: rows whose
+ * entity is the user or one of their cases, documents or checklist items
+ * (logins excluded), plus the applicant's own onboarding actions
+ * (`APPLICANT_HISTORY_ACTIONS`). BACKOFFICE or unknown id → `NotFoundError`.
  */
 export async function getUserReview(actor: SessionUser, userId: string): Promise<UserReviewDetail> {
   assertBackoffice(actor);
@@ -401,7 +417,16 @@ export async function getUserReview(actor: SessionUser, userId: string): Promise
   ]);
   const relatedIds = [userId, ...caseIds, ...docIds.map((d) => d.id), ...itemIds.map((i) => i.id)];
   const rows = await db.auditLog.findMany({
-    where: { OR: [{ entityId: { in: relatedIds } }, { actorId: userId }] },
+    where: {
+      OR: [
+        {
+          entity: { in: HISTORY_ENTITIES },
+          entityId: { in: relatedIds },
+          action: { notIn: LOGIN_ACTIONS },
+        },
+        { actorId: userId, action: { in: APPLICANT_HISTORY_ACTIONS } },
+      ],
+    },
     orderBy: { seq: 'desc' },
     take: HISTORY_LIMIT,
     select: { at: true, action: true, actorId: true },

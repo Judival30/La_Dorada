@@ -27,10 +27,18 @@ Salida de M2 (Alta y validación), diferidos a milestones posteriores.
 | # | Pendiente | Dónde | Notas |
 |---|---|---|---|
 | M2-1 | Un usuario bloqueado puede iniciar sesión y ve la vista de bloqueo en `/onboarding` (sin escrituras) | Decisión vigente | Intencional; revisar si se prefiere cerrar la sesión |
-| M2-2 | Limitadores en memoria (registro y login) e IP de cliente sin proxy confiable | M6 (antes de desplegar) | Usar almacén compartido y configurar proxy de confianza |
+| M2-2 | Limitadores en memoria (registro, login y subidas) e IP de cliente sin proxy confiable | M6 (antes de desplegar) | Usar almacén compartido y configurar proxy de confianza |
 | M2-3 | El ítem de listas restrictivas (screening) del checklist KYC se puede marcar a mano | Pregunta de producto | Definir si requiere evidencia o proveedor real |
 | M2-4 | `listUsersForReview` se usa para contar (`/bo` hace 4 consultas de lista para los totales) | M3 | Agregar un helper de conteo |
 | M2-5 | La spec de capturas (`e2e/screens`) es opt-in y no corre por defecto | M6 | Valorar incluirla en CI |
 | M2-6 | Enumeración de correos por el registro con sesión inmediata | Riesgo aceptado | Reevaluar si se añade verificación de correo |
 | M2-7 | SMTP sin autenticación ni TLS | M6 (producción) | Mailpit local lo permite; configurar SMTP real con TLS |
 | M2-8 | Textos legales (consentimiento y política de datos) son borradores | Antes de uso real | Revisión por asesor legal |
+| M2-9 | Historial de decisiones: el caso guarda solo la última nota de corrección y el último motivo de rechazo | M3 | Tabla `VerificationDecision` con el texto de cada ronda de correcciones y rechazo |
+| M2-10 | Helper `countUsersForReview` (ver M2-4) | M3 | Reemplaza las 4 consultas de lista de `/bo` |
+| M2-11 | `VerificationCase.decidedById` no es una FK real | M3 | Convertirla en relación con `User` |
+| M2-12 | El seed toma el caso más antiguo del usuario y la app el más reciente | M3 | Unificar el criterio (más reciente) |
+| M2-13 | Adaptadores en `src/server/{storage,mail,kyc}` y no en `src/server/adapters` | Solo documentación | Ajustar la arquitectura descrita al código |
+| M2-14 | "Representación legal verificada" se exige también a compradores ANGEL | Pregunta de producto | Definir si aplica a personas naturales |
+| M2-15 | Vacíos del ciclo de vida: REJECTED es terminal sin reapertura; PENDING no vence ni se puede bloquear; los documentos de solicitantes rechazados no tienen regla de retención (Ley 1581) | Decisión de producto antes de producción | Definir reapertura, vencimiento, bloqueo y retención |
+| M2-16 | Crear `Organization` / `Company` del vendedor a partir de `profile.step4`, y el choque de NIT (`Organization.nit @unique`) | M3 | Resolver qué pasa si el NIT ya existe |

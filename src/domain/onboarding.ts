@@ -198,7 +198,7 @@ export const PROFILE_SCHEMAS = {
     nit,
     sector: sectorEnum,
     department: departmentEnum,
-    city: z.string().min(1),
+    city: z.string().trim().min(1).max(80),
   }),
   step4Buyer,
 };
