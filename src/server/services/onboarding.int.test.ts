@@ -422,12 +422,32 @@ describe('documentReadUrl', () => {
     const { id } = await uploadVerificationDocument(u.id, 'NATIONAL_ID', pdf());
     const key = (await db.verificationDocument.findUniqueOrThrow({ where: { id } })).storageKey;
 
-    expect(await documentReadUrl(await session(u), id)).toBe(`memory://${key}?ttl=60`);
-    expect(await documentReadUrl(await session(bo), id)).toBe(`memory://${key}?ttl=60`);
+    const pdfUrl = `memory://${key}?ttl=60&type=${encodeURIComponent('application/pdf')}&disposition=${encodeURIComponent('attachment; filename="documento.pdf"')}`;
+    expect(await documentReadUrl(await session(u), id)).toBe(pdfUrl);
+    expect(await documentReadUrl(await session(bo), id)).toBe(pdfUrl);
 
     const a = await audits('VERIFICATION_DOCUMENT_VIEWED', id);
     expect(a.map((r) => r.actorId)).toEqual([u.id, bo.id]);
     expect(a[1]?.after).toEqual({ documentId: id, type: 'NATIONAL_ID' });
+  });
+
+  it('serves images inline with their stored mime and never the uploaded file name', async () => {
+    const u = await createTestUser(tag, 'SELLER');
+    const { id } = await uploadVerificationDocument(u.id, 'NATIONAL_ID', {
+      name: 'evil"; filename=x.html.png',
+      bytes: fixtures.png(),
+    });
+    const key = (await db.verificationDocument.findUniqueOrThrow({ where: { id } })).storageKey;
+    expect(await documentReadUrl(await session(u), id)).toBe(
+      `memory://${key}?ttl=60&type=${encodeURIComponent('image/png')}&disposition=inline`,
+    );
+  });
+
+  it('still serves an ENABLED owner their own document', async () => {
+    const u = await createTestUser(tag, 'BUYER');
+    const { id } = await uploadVerificationDocument(u.id, 'NATIONAL_ID', pdf());
+    await db.user.update({ where: { id: u.id }, data: { status: 'ENABLED' } });
+    await expect(documentReadUrl(await session(u), id)).resolves.toContain('memory://');
   });
 
   it('gives NotFoundError to another applicant and to a non-ENABLED BACKOFFICE', async () => {

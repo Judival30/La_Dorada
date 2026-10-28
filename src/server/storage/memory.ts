@@ -1,4 +1,4 @@
-import type { ObjectStorage } from './index';
+import type { ObjectStorage, PresignGetOptions } from './index';
 
 /** In-memory storage for unit tests (`STORAGE_DRIVER=memory`). */
 export class MemoryStorage implements ObjectStorage {
@@ -8,8 +8,12 @@ export class MemoryStorage implements ObjectStorage {
     this.objects.set(key, { body, contentType });
   }
 
-  async presignGet(key: string, ttlSeconds = 60): Promise<string> {
-    return `memory://${key}?ttl=${ttlSeconds}`;
+  /** Fake URL; overrides appear as `&type=` / `&disposition=` (URI-encoded) so tests can assert them. */
+  async presignGet(key: string, ttlSeconds = 60, opts: PresignGetOptions = {}): Promise<string> {
+    let url = `memory://${key}?ttl=${ttlSeconds}`;
+    if (opts.contentType) url += `&type=${encodeURIComponent(opts.contentType)}`;
+    if (opts.disposition) url += `&disposition=${encodeURIComponent(opts.disposition)}`;
+    return url;
   }
 
   async delete(key: string): Promise<void> {

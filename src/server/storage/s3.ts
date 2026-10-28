@@ -6,7 +6,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { env } from '@/server/env';
-import type { ObjectStorage } from './index';
+import type { ObjectStorage, PresignGetOptions } from './index';
 
 /** S3-compatible storage (RustFS locally). Path-style addressing, private bucket. */
 export class S3Storage implements ObjectStorage {
@@ -28,10 +28,14 @@ export class S3Storage implements ObjectStorage {
     );
   }
 
-  presignGet(key: string, ttlSeconds = 60): Promise<string> {
-    return getSignedUrl(this.client, new GetObjectCommand({ Bucket: env.S3_BUCKET, Key: key }), {
-      expiresIn: ttlSeconds,
+  presignGet(key: string, ttlSeconds = 60, opts: PresignGetOptions = {}): Promise<string> {
+    const command = new GetObjectCommand({
+      Bucket: env.S3_BUCKET,
+      Key: key,
+      ResponseContentType: opts.contentType,
+      ResponseContentDisposition: opts.disposition,
     });
+    return getSignedUrl(this.client, command, { expiresIn: ttlSeconds });
   }
 
   async delete(key: string): Promise<void> {

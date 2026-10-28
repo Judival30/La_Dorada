@@ -39,6 +39,13 @@ describe('sanitizeFileName', () => {
     expect(sanitizeFileName(long)).toHaveLength(120);
   });
 
+  it('drops bidi/format characters (U+202E) and C1 controls', () => {
+    // "cedula‮fdp.exe" would render as "cedulaexe.pdf" in a bidi-aware UI.
+    expect(sanitizeFileName('cedula‮fdp.exe')).toBe('cedulafdp.exe');
+    expect(sanitizeFileName('a​b⁦c﻿.pdf')).toBe('abc.pdf');
+    expect(sanitizeFileName('rut.pdf')).toBe('rut.pdf');
+  });
+
   it('falls back to "documento" when nothing is left', () => {
     expect(sanitizeFileName('')).toBe('documento');
     expect(sanitizeFileName('///')).toBe('documento');

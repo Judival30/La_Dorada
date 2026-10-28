@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { cache } from 'react';
 import { ForbiddenError, UnauthorizedError } from '@/domain/errors';
 import { assertRole } from '@/domain/policies/roles';
+import type { UserStatus } from '@/domain/machines/user';
 import type { Role } from '@/domain/roles';
 import { sessionCookieOptions } from './cookie';
 import { SESSION_COOKIE, validateSessionDetailed, type SessionUser } from './session';
@@ -85,15 +86,33 @@ export async function requireActor(...roles: Role[]): Promise<SessionUser> {
   return user;
 }
 
+/** Statuses `requireApplicant` lets through: every status except ENABLED. */
+export const APPLICANT_STATUSES: readonly UserStatus[] = [
+  'PENDING',
+  'CORRECTIONS_REQUESTED',
+  'IN_REVIEW',
+  'REJECTED',
+  'BLOCKED',
+];
+
 /**
- * Like `requireActor` but WITHOUT the `ENABLED` check: for the onboarding
- * endpoints, which PENDING / CORRECTIONS_REQUESTED users must reach before
- * they are enabled. No session → `UnauthorizedError` (401); role not allowed →
- * `ForbiddenError` (403). The caller (service) MUST enforce the status rules.
+ * Like `requireActor` but for the onboarding endpoints, which applicants must
+ * reach BEFORE they are enabled: a BUYER or SELLER whose status is not ENABLED
+ * (`APPLICANT_STATUSES`). No session → `UnauthorizedError` (401); BACKOFFICE,
+ * or an ENABLED applicant (who uses the regular `requireActor` endpoints) →
+ * `ForbiddenError` (403). The caller (service) MUST still enforce the finer
+ * status rules (e.g. only PENDING / CORRECTIONS_REQUESTED may edit).
+ * Endpoints that ENABLED users also need (reading their own documents) choose
+ * `requireActor()` for ENABLED users explicitly; see the document GET route.
  */
-export async function requireActorAnyStatus(...roles: Role[]): Promise<SessionUser> {
+export async function requireApplicant(): Promise<SessionUser> {
   const user = await getCurrentUser();
   if (!user) throw new UnauthorizedError();
-  if (roles.length > 0 && !roles.includes(user.role)) throw new ForbiddenError('Role not allowed');
+  if (user.role !== 'BUYER' && user.role !== 'SELLER') {
+    throw new ForbiddenError('Role not allowed');
+  }
+  if (!APPLICANT_STATUSES.includes(user.status)) {
+    throw new ForbiddenError(`Not an applicant while ${user.status}`);
+  }
   return user;
 }

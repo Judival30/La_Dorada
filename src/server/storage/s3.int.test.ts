@@ -32,6 +32,24 @@ describe('S3 storage (RustFS)', () => {
     }
   });
 
+  it('presignGet overrides Content-Type and Content-Disposition of the response', async () => {
+    const storage = getStorage();
+    const key = `verification/test-${randomUUID()}/${randomUUID()}`;
+    await storage.put(key, Buffer.from('%PDF-1.4 x'), 'application/octet-stream');
+    try {
+      const url = await storage.presignGet(key, 60, {
+        contentType: 'application/pdf',
+        disposition: 'attachment; filename="documento.pdf"',
+      });
+      const res = await fetch(url);
+      expect(res.status).toBe(200);
+      expect(res.headers.get('content-type')).toBe('application/pdf');
+      expect(res.headers.get('content-disposition')).toBe('attachment; filename="documento.pdf"');
+    } finally {
+      await storage.delete(key);
+    }
+  });
+
   it('presigned URL expires', async () => {
     const storage = getStorage();
     const key = `verification/test-${randomUUID()}/${randomUUID()}`;

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ForbiddenError, ValidationError } from '@/domain/errors';
 import { VERIFICATION_DOCUMENT_TYPES } from '@/domain/onboarding';
-import { requireActorAnyStatus } from '@/server/auth/guard';
+import { requireApplicant } from '@/server/auth/guard';
 import { errorResponse } from '@/server/http/errors';
 import {
   EDITABLE_STATUSES,
@@ -55,7 +55,7 @@ async function readBodyCapped(req: Request, cap: number): Promise<Uint8Array<Arr
  */
 export async function POST(req: Request): Promise<Response> {
   try {
-    const actor = await requireActorAnyStatus('BUYER', 'SELLER');
+    const actor = await requireApplicant();
     if (!EDITABLE_STATUSES.includes(actor.status)) {
       throw new ForbiddenError(`Uploads are closed while ${actor.status}`);
     }

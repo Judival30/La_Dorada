@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { PROFILE_SCHEMAS } from '@/domain/onboarding';
-import { requireActorAnyStatus } from '@/server/auth/guard';
+import { requireApplicant } from '@/server/auth/guard';
 import { toActionError } from '@/server/http/errors';
 import {
   deleteVerificationDocument,
@@ -160,7 +160,7 @@ export async function saveStepAction(
   // `step` arrives through bind(), so it is not trusted: check it at runtime.
   if (step !== 1 && step !== 3 && step !== 4) return { error: 'Paso inválido.' };
   try {
-    const actor = await requireActorAnyStatus('BUYER', 'SELLER');
+    const actor = await requireApplicant();
     if (actor.role !== 'BUYER' && actor.role !== 'SELLER') return { error: 'Rol no permitido.' };
     const data = payloadFor(step, actor.role, form);
     const parsed = schemaFor(step, actor.role).safeParse(data);
@@ -182,7 +182,7 @@ export async function saveStepAction(
 
 export async function submitAction(): Promise<ActionResult> {
   try {
-    const actor = await requireActorAnyStatus('BUYER', 'SELLER');
+    const actor = await requireApplicant();
     await submitForReview(actor.id);
     revalidatePath('/onboarding');
     return { ok: true };
@@ -193,7 +193,7 @@ export async function submitAction(): Promise<ActionResult> {
 
 export async function deleteDocumentAction(id: string): Promise<ActionResult> {
   try {
-    const actor = await requireActorAnyStatus('BUYER', 'SELLER');
+    const actor = await requireApplicant();
     await deleteVerificationDocument(actor.id, id);
     revalidatePath('/onboarding');
     return { ok: true };

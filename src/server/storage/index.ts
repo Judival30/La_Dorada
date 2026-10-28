@@ -2,10 +2,18 @@ import { getDriverEnv } from '@/server/env';
 import { MemoryStorage } from './memory';
 import { S3Storage } from './s3';
 
+/** Response header overrides baked into a signed GET URL. */
+export type PresignGetOptions = {
+  /** Sent as `ResponseContentType` (the response's Content-Type). */
+  contentType?: string;
+  /** Sent as `ResponseContentDisposition`, e.g. `inline` or `attachment; filename="x.pdf"`. */
+  disposition?: string;
+};
+
 export interface ObjectStorage {
   put(key: string, body: Buffer, contentType: string): Promise<void>;
   /** Short-lived signed GET URL (default 60 s). */
-  presignGet(key: string, ttlSeconds?: number): Promise<string>;
+  presignGet(key: string, ttlSeconds?: number, opts?: PresignGetOptions): Promise<string>;
   delete(key: string): Promise<void>;
 }
 

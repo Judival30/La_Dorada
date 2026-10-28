@@ -27,12 +27,14 @@ export function sniffMime(bytes: Buffer): SniffedMime | null {
 export const MAX_FILE_NAME_LENGTH = 120;
 
 /**
- * Display-only name: the base name after the last `/` or `\`, without control
- * characters, trimmed and cut to 120 characters. Never used to build a storage
- * key (those are random).
+ * Display-only name: the base name after the last `/` or `\`, without C0/C1
+ * control characters and without Unicode format characters (`\p{Cf}`: bidi
+ * overrides such as U+202E, zero-width characters, BOM), trimmed and cut to 120
+ * characters. Never used to build a storage key (those are random) nor as a
+ * download file name (that one is fixed).
  */
 export function sanitizeFileName(name: string): string {
   const base = name.split(/[/\\]/).pop() ?? '';
-  const clean = base.replace(/[\u0000-\u001f\u007f]/g, '').trim();
+  const clean = base.replace(/[\u0000-\u001f\u007f-\u009f]|\p{Cf}/gu, '').trim();
   return clean.slice(0, MAX_FILE_NAME_LENGTH) || 'documento';
 }

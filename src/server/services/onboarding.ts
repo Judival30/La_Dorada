@@ -68,9 +68,9 @@ type Client = Prisma.TransactionClient | typeof db;
 
 // ───────────────────────────── helpers ─────────────────────────────
 
-type LockedUser = { id: string; role: Role; status: UserStatus };
+export type LockedUser = { id: string; role: Role; status: UserStatus };
 
-async function lockUser(tx: Prisma.TransactionClient, userId: string): Promise<LockedUser> {
+export async function lockUser(tx: Prisma.TransactionClient, userId: string): Promise<LockedUser> {
   const rows = await tx.$queryRaw<LockedUser[]>`
     SELECT id, role::text AS role, status::text AS status
     FROM "User" WHERE id = ${userId} FOR UPDATE`;
@@ -90,7 +90,7 @@ function assertEditable(status: UserStatus): void {
   }
 }
 
-async function latestCase(client: Client, userId: string) {
+export async function latestCase(client: Client, userId: string) {
   const vc = await client.verificationCase.findFirst({
     where: { userId },
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -99,7 +99,7 @@ async function latestCase(client: Client, userId: string) {
   return vc;
 }
 
-function readProfile(json: Prisma.JsonValue | null): Partial<ProfileData> {
+export function readProfile(json: Prisma.JsonValue | null): Partial<ProfileData> {
   if (json === null || typeof json !== 'object' || Array.isArray(json)) return {};
   return { ...(json as Partial<ProfileData>) };
 }
@@ -399,9 +399,25 @@ export async function deleteVerificationDocument(
 }
 
 /**
+ * Response headers for a signed read: the stored (sniffed) mime, images
+ * `inline`, PDFs as an attachment with a FIXED safe file name. The uploader's
+ * `originalName` is never used here (header injection / spoofing).
+ */
+export function documentResponseHeaders(mime: string): {
+  contentType: string;
+  disposition: string;
+} {
+  return mime === 'application/pdf'
+    ? { contentType: mime, disposition: 'attachment; filename="documento.pdf"' }
+    : { contentType: mime, disposition: 'inline' };
+}
+
+/**
  * 60 s signed GET URL for the document's owner or an ENABLED BACKOFFICE user,
  * audited as `VERIFICATION_DOCUMENT_VIEWED`. Anyone else gets `NotFoundError`
  * (404, not 403): a stranger cannot tell a foreign document from a missing one.
+ * The URL forces the response Content-Type / Content-Disposition
+ * (`documentResponseHeaders`).
  */
 export async function documentReadUrl(actor: SessionUser, documentId: string): Promise<string> {
   const isBackoffice = actor.role === 'BACKOFFICE' && actor.status === 'ENABLED';
@@ -409,7 +425,7 @@ export async function documentReadUrl(actor: SessionUser, documentId: string): P
     where: isBackoffice
       ? { id: documentId }
       : { id: documentId, verificationCase: { userId: actor.id } },
-    select: { id: true, type: true, storageKey: true },
+    select: { id: true, type: true, storageKey: true, mime: true },
   });
   if (!doc) throw new NotFoundError('Document not found');
 
@@ -423,7 +439,11 @@ export async function documentReadUrl(actor: SessionUser, documentId: string): P
       after: { documentId: doc.id, type: doc.type },
     },
   }));
-  return getStorage().presignGet(doc.storageKey, DOCUMENT_URL_TTL_SECONDS);
+  return getStorage().presignGet(
+    doc.storageKey,
+    DOCUMENT_URL_TTL_SECONDS,
+    documentResponseHeaders(doc.mime),
+  );
 }
 
 // ───────────────────────────── submission ─────────────────────────────

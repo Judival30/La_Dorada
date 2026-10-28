@@ -49,13 +49,7 @@ vi.mock('./session', () => ({
 }));
 
 import { ForbiddenError, UnauthorizedError } from '@/domain/errors';
-import {
-  getCurrentUser,
-  homePathFor,
-  requireActor,
-  requireActorAnyStatus,
-  requireUser,
-} from './guard';
+import { getCurrentUser, homePathFor, requireActor, requireApplicant, requireUser } from './guard';
 
 const user = (over: Partial<SessionUser> = {}): SessionUser => ({
   id: 'u1',
@@ -146,23 +140,39 @@ describe('requireActor', () => {
   });
 });
 
-describe('requireActorAnyStatus', () => {
+describe('requireApplicant', () => {
   it('throws UnauthorizedError without a session', async () => {
-    await expect(requireActorAnyStatus('BUYER')).rejects.toBeInstanceOf(UnauthorizedError);
+    await expect(requireApplicant()).rejects.toBeInstanceOf(UnauthorizedError);
   });
 
-  it('accepts a user in any status (onboarding happens before ENABLED)', async () => {
+  it('accepts a BUYER or SELLER in any non-ENABLED status (onboarding happens before ENABLED)', async () => {
     state.token = 't';
-    for (const status of ['PENDING', 'IN_REVIEW', 'CORRECTIONS_REQUESTED', 'BLOCKED'] as const) {
-      state.user = user({ status });
-      await expect(requireActorAnyStatus('BUYER', 'SELLER')).resolves.toEqual(user({ status }));
+    for (const role of ['BUYER', 'SELLER'] as const) {
+      for (const status of [
+        'PENDING',
+        'IN_REVIEW',
+        'CORRECTIONS_REQUESTED',
+        'REJECTED',
+        'BLOCKED',
+      ] as const) {
+        state.user = user({ role, status });
+        await expect(requireApplicant()).resolves.toEqual(user({ role, status }));
+      }
     }
   });
 
-  it('still enforces the role', async () => {
+  it('rejects ENABLED applicants (they use the regular, ENABLED-only endpoints)', async () => {
     state.token = 't';
-    state.user = user({ role: 'BACKOFFICE', status: 'PENDING' });
-    await expect(requireActorAnyStatus('BUYER', 'SELLER')).rejects.toBeInstanceOf(ForbiddenError);
+    state.user = user({ role: 'SELLER', status: 'ENABLED' });
+    await expect(requireApplicant()).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it('rejects BACKOFFICE in any status', async () => {
+    state.token = 't';
+    for (const status of ['PENDING', 'ENABLED'] as const) {
+      state.user = user({ role: 'BACKOFFICE', status });
+      await expect(requireApplicant()).rejects.toBeInstanceOf(ForbiddenError);
+    }
   });
 });
 
