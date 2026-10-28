@@ -6,6 +6,8 @@ export const AUDIT_ACTIONS = [
   // Auth (M1)
   'LOGIN_SUCCEEDED',
   'LOGIN_FAILED',
+  // Onboarding (M2)
+  'USER_REGISTERED',
   // Demo data (M1)
   'SEED_LOADED',
   // Confidential data room, spec R2 / §6 (M4)

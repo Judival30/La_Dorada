@@ -51,3 +51,14 @@ export function resetLoginLimiter(): void {
   loginLimiter.reset();
   loginEmailLimiter.reset();
 }
+
+/**
+ * 5 sign-up attempts per 15 minutes per IP. Counted after input validation and
+ * before the (costly) password hash, so duplicates count too.
+ */
+export const registerIpLimiter = createRateLimiter({ capacity: 5, windowMs: 15 * 60_000 });
+
+/** Test helper: forgets every recorded sign-up attempt. */
+export function resetRegisterLimiter(): void {
+  registerIpLimiter.reset();
+}

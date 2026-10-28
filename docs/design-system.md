@@ -115,7 +115,9 @@ Regla del oro: sobre fondo claro el oro mide 1,9:1, así que nunca porta texto. 
 | Aviso legal                                                |
 +------------------------------------------------------------+
 ```
-(*) El registro se habilita más adelante; hoy el botón principal es "Entrar".
+(*) Desde M2 el botón principal es "Crear cuenta" (lleva a `/registro`) y "Entrar" pasa a botón secundario.
+
+**Registro (`/registro`).** Misma pantalla partida del login, con el panel navy fijo en escritorio y tres pasos numerados (sí son una secuencia). El formulario elige el rol con dos tarjetas de radio grandes, muestra las reglas de la contraseña antes de enviar y se marcan a medida que se cumplen, y agrupa el consentimiento de Habeas Data en un recuadro con la nota "Texto de referencia — validar con asesor legal" y la política resumida en un `<details>`. El texto legal vive en `src/content/legal.ts`.
 
 ### Principios
 

@@ -41,7 +41,16 @@ export default async function LoginPage({ searchParams }: Props) {
           <h1 className="ld-h1">Entra a La Dorada</h1>
           <p className="mt-1 mb-7 text-ld-muted">Usa el correo con el que te registraste.</p>
           <LoginForm next={nextPath} demoAccounts={getDemoAccounts()} />
-          <p className="ld-small mt-8">
+          <p className="ld-small mt-8 text-ld-ink">
+            ¿No tienes cuenta?{' '}
+            <Link
+              href="/registro"
+              className="font-medium text-ld-primary underline underline-offset-4"
+            >
+              Crea una
+            </Link>
+          </p>
+          <p className="ld-small mt-3">
             <Link href="/" className="font-medium text-ld-primary underline underline-offset-4">
               Volver al inicio
             </Link>

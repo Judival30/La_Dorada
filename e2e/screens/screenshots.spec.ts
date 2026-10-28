@@ -22,6 +22,14 @@ test('capture public pages', async ({ browser }) => {
     await page.goto('/login');
     await page.waitForTimeout(1800);
     await page.screenshot({ path: `${OUT}/login-${s.tag}.png`, fullPage: true });
+    await page.goto('/registro');
+    await page.waitForTimeout(1800);
+    await page.screenshot({ path: `${OUT}/registro-${s.tag}.png`, fullPage: true });
+    // Error state: submit empty, then open the policy summary.
+    await page.getByRole('button', { name: 'Crear cuenta' }).click();
+    await page.getByText('Elige cómo quieres usar La Dorada.').waitFor();
+    await page.getByText('Leer la política resumida').click();
+    await page.screenshot({ path: `${OUT}/registro-errors-${s.tag}.png`, fullPage: true });
     await ctx.close();
   }
 });

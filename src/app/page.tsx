@@ -22,7 +22,10 @@ const STEPS = [
   { name: 'Descubrir', text: 'Explora empresas y filtra por lo que buscas.' },
   { name: 'Validar', text: 'Verificamos usuarios y empresas antes de publicar.' },
   { name: 'Analizar', text: 'Revisa una valoración orientativa y el data room.' },
-  { name: 'Conectar', text: 'Pide acceso, firma el acuerdo de confidencialidad y habla con el vendedor.' },
+  {
+    name: 'Conectar',
+    text: 'Pide acceso, firma el acuerdo de confidencialidad y habla con el vendedor.',
+  },
   { name: 'Negociar', text: 'Presenta ofertas y avanza hacia la carta de intención.' },
   { name: 'Cerrar', text: 'Formaliza el acuerdo. Tú decides en cada etapa.' },
 ] as const;
@@ -36,14 +39,23 @@ export default function LandingPage() {
             <Logo />
           </Link>
           <nav aria-label="Secciones" className="flex items-center gap-1 md:gap-3">
-            <a href="#roles" className="ld-small hidden min-h-11 items-center rounded-[var(--ld-radius-nav)] px-3 font-medium text-ld-ink hover:text-ld-navy md:inline-flex">
+            <a
+              href="#roles"
+              className="ld-small hidden min-h-11 items-center rounded-[var(--ld-radius-nav)] px-3 font-medium text-ld-ink hover:text-ld-navy md:inline-flex"
+            >
               Roles
             </a>
-            <a href="#como-funciona" className="ld-small hidden min-h-11 items-center rounded-[var(--ld-radius-nav)] px-3 font-medium text-ld-ink hover:text-ld-navy md:inline-flex">
+            <a
+              href="#como-funciona"
+              className="ld-small hidden min-h-11 items-center rounded-[var(--ld-radius-nav)] px-3 font-medium text-ld-ink hover:text-ld-navy md:inline-flex"
+            >
               Cómo funciona
             </a>
-            <Link href="/login" className="ld-btn ld-btn-primary">
+            <Link href="/login" className="ld-btn ld-btn-quiet">
               Entrar
+            </Link>
+            <Link href="/registro" className="ld-btn ld-btn-primary hidden sm:inline-flex">
+              Crear cuenta
             </Link>
           </nav>
         </div>
@@ -56,15 +68,21 @@ export default function LandingPage() {
               Encuentra la empresa que quieres comprar o en la que quieres invertir.
             </h1>
             <p className="mt-5 max-w-[56ch] text-lg leading-8 text-ld-ink">
-              La Dorada conecta compradores cualificados con empresas privadas colombianas que buscan
-              vender, recibir inversión o sumar un socio, y ordena el proceso desde el descubrimiento
-              hasta la negociación.
+              La Dorada conecta compradores cualificados con empresas privadas colombianas que
+              buscan vender, recibir inversión o sumar un socio, y ordena el proceso desde el
+              descubrimiento hasta la negociación.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link href="/login" className="ld-btn ld-btn-primary">
+              <Link href="/registro" className="ld-btn ld-btn-primary">
+                Crear cuenta
+              </Link>
+              <Link href="/login" className="ld-btn ld-btn-quiet">
                 Entrar a mi cuenta
               </Link>
-              <a href="#como-funciona" className="ld-btn ld-btn-quiet">
+              <a
+                href="#como-funciona"
+                className="ld-small inline-flex min-h-11 items-center px-2 font-medium text-ld-primary underline underline-offset-4"
+              >
                 Ver cómo funciona
               </a>
             </div>
@@ -80,7 +98,10 @@ export default function LandingPage() {
             <ol className="mt-8 grid gap-x-8 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
               {STEPS.map((s, i) => (
                 <li key={s.name} className="flex gap-4">
-                  <span className="ld-num font-display text-[2rem] font-bold leading-9 text-ld-gold" aria-hidden="true">
+                  <span
+                    className="ld-num font-display text-[2rem] font-bold leading-9 text-ld-gold"
+                    aria-hidden="true"
+                  >
                     {i + 1}
                   </span>
                   <div>
@@ -117,9 +138,7 @@ export default function LandingPage() {
             La Dorada no ofrece asesoría financiera regulada y no ejecuta compras ni mueve dinero.
             Las valoraciones son orientativas y cada parte decide si compra, vende o invierte.
           </Disclaimer>
-          <p className="ld-small text-ld-muted">
-            Los datos de esta demostración son ficticios.
-          </p>
+          <p className="ld-small text-ld-muted">Los datos de esta demostración son ficticios.</p>
         </div>
       </footer>
     </>

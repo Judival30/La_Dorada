@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { unstable_doesMiddlewareMatch } from 'next/experimental/testing/server';
 import { NextRequest } from 'next/server';
-import { middleware } from './middleware';
+import { config, middleware } from './middleware';
 import { SESSION_COOKIE, sessionMaxAgeSeconds, sessionTtlDays } from '@/server/auth/cookie';
 
 const req = (path: string, cookie?: string) =>
@@ -65,5 +66,14 @@ describe('sessionTtlDays', () => {
     else vi.stubEnv('SESSION_TTL_DAYS', raw);
     expect(sessionTtlDays()).toBe(days);
     expect(sessionMaxAgeSeconds()).toBe(days * 86_400);
+  });
+});
+
+describe('middleware matcher', () => {
+  it('leaves the public sign-up and login pages unprotected', () => {
+    for (const url of ['/registro', '/login', '/']) {
+      expect(unstable_doesMiddlewareMatch({ config, url })).toBe(false);
+    }
+    expect(unstable_doesMiddlewareMatch({ config, url: '/onboarding' })).toBe(true);
   });
 });
