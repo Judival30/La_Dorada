@@ -315,6 +315,8 @@ model VerificationDocument {
   storageKey         String                   @unique
   mime               String
   size               Int
+  /// Uploader's file name, sanitized (no path separators, ≤ 120 chars). Display only.
+  originalName       String?
   reviewStatus       ReviewStatus             @default(PENDING)
   createdAt          DateTime                 @default(now())
   updatedAt          DateTime                 @updatedAt

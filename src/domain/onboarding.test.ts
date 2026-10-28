@@ -115,6 +115,13 @@ describe('PROFILE_SCHEMAS', () => {
       PROFILE_SCHEMAS.step3Buyer.safeParse({ buyerType: 'FUND', entityName: 'Fondo X', entityNit: 'abc' }).success,
     ).toBe(false);
   });
+  it('step4 department and buyer regions must be Colombian departments', () => {
+    expect(PROFILE_SCHEMAS.step4Seller.safeParse({ ...sellerStep4, department: 'Texas' }).success).toBe(false);
+    expect(PROFILE_SCHEMAS.step4Seller.safeParse({ ...sellerStep4, department: 'Bogotá D.C.' }).success).toBe(true);
+    const ok = { sectors: ['SALUD'], regions: ['Antioquia', 'Cauca'], ticketMinMillions: 1, ticketMaxMillions: 2 };
+    expect(PROFILE_SCHEMAS.step4Buyer.safeParse(ok).success).toBe(true);
+    expect(PROFILE_SCHEMAS.step4Buyer.safeParse({ ...ok, regions: ['Antioquia', 'Narnia'] }).success).toBe(false);
+  });
   it('step4 buyer ticket range', () => {
     const ok = { sectors: ['SALUD'], regions: ['Antioquia'], ticketMinMillions: 100, ticketMaxMillions: 500 };
     expect(PROFILE_SCHEMAS.step4Buyer.safeParse(ok).success).toBe(true);

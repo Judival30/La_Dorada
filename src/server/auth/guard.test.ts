@@ -49,7 +49,13 @@ vi.mock('./session', () => ({
 }));
 
 import { ForbiddenError, UnauthorizedError } from '@/domain/errors';
-import { getCurrentUser, homePathFor, requireActor, requireUser } from './guard';
+import {
+  getCurrentUser,
+  homePathFor,
+  requireActor,
+  requireActorAnyStatus,
+  requireUser,
+} from './guard';
 
 const user = (over: Partial<SessionUser> = {}): SessionUser => ({
   id: 'u1',
@@ -137,6 +143,26 @@ describe('requireActor', () => {
     state.user = user({ role: 'BACKOFFICE' });
     await expect(requireActor('BACKOFFICE')).resolves.toEqual(user({ role: 'BACKOFFICE' }));
     await expect(requireActor()).resolves.toEqual(user({ role: 'BACKOFFICE' }));
+  });
+});
+
+describe('requireActorAnyStatus', () => {
+  it('throws UnauthorizedError without a session', async () => {
+    await expect(requireActorAnyStatus('BUYER')).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+
+  it('accepts a user in any status (onboarding happens before ENABLED)', async () => {
+    state.token = 't';
+    for (const status of ['PENDING', 'IN_REVIEW', 'CORRECTIONS_REQUESTED', 'BLOCKED'] as const) {
+      state.user = user({ status });
+      await expect(requireActorAnyStatus('BUYER', 'SELLER')).resolves.toEqual(user({ status }));
+    }
+  });
+
+  it('still enforces the role', async () => {
+    state.token = 't';
+    state.user = user({ role: 'BACKOFFICE', status: 'PENDING' });
+    await expect(requireActorAnyStatus('BUYER', 'SELLER')).rejects.toBeInstanceOf(ForbiddenError);
   });
 });
 

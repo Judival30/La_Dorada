@@ -84,3 +84,16 @@ export async function requireActor(...roles: Role[]): Promise<SessionUser> {
   assertRole(user, ...roles);
   return user;
 }
+
+/**
+ * Like `requireActor` but WITHOUT the `ENABLED` check: for the onboarding
+ * endpoints, which PENDING / CORRECTIONS_REQUESTED users must reach before
+ * they are enabled. No session → `UnauthorizedError` (401); role not allowed →
+ * `ForbiddenError` (403). The caller (service) MUST enforce the status rules.
+ */
+export async function requireActorAnyStatus(...roles: Role[]): Promise<SessionUser> {
+  const user = await getCurrentUser();
+  if (!user) throw new UnauthorizedError();
+  if (roles.length > 0 && !roles.includes(user.role)) throw new ForbiddenError('Role not allowed');
+  return user;
+}

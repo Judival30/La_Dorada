@@ -150,6 +150,8 @@ const phone = z
 
 const sectorEnum = z.enum(SECTORS);
 const buyerTypeEnum = z.enum(BUYER_TYPES);
+/** Step 4 locations must be one of the 33 DEPARTMENTS (Task 2 review carry-over). */
+const departmentEnum = z.enum(DEPARTMENTS, { error: 'Selecciona un departamento de la lista' });
 
 const step3Buyer = z
   .object({
@@ -160,7 +162,11 @@ const step3Buyer = z
   .superRefine((v, ctx) => {
     if (v.buyerType === 'ANGEL') return;
     if (!v.entityName) {
-      ctx.addIssue({ code: 'custom', path: ['entityName'], message: 'Indica el nombre de la entidad' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['entityName'],
+        message: 'Indica el nombre de la entidad',
+      });
     }
     if (!v.entityNit) {
       ctx.addIssue({ code: 'custom', path: ['entityNit'], message: 'Indica el NIT de la entidad' });
@@ -170,7 +176,7 @@ const step3Buyer = z
 const step4Buyer = z
   .object({
     sectors: z.array(sectorEnum).min(1),
-    regions: z.array(z.string().min(1)).min(1),
+    regions: z.array(departmentEnum).min(1),
     ticketMinMillions: z.number().int().min(0),
     ticketMaxMillions: z.number().int().min(0),
   })
@@ -191,7 +197,7 @@ export const PROFILE_SCHEMAS = {
     legalName: z.string().trim().min(2).max(160),
     nit,
     sector: sectorEnum,
-    department: z.string().min(1),
+    department: departmentEnum,
     city: z.string().min(1),
   }),
   step4Buyer,
@@ -282,9 +288,9 @@ export function onboardingProgress(s: OnboardingSnapshot): {
   if (idIssue === null) completed.push(2);
   else missing.push({ step: 2, reason: idIssue });
 
-  const step3Ok = (
-    seller ? PROFILE_SCHEMAS.step3Seller : PROFILE_SCHEMAS.step3Buyer
-  ).safeParse(s.profile.step3).success;
+  const step3Ok = (seller ? PROFILE_SCHEMAS.step3Seller : PROFILE_SCHEMAS.step3Buyer).safeParse(
+    s.profile.step3,
+  ).success;
   if (step3Ok) completed.push(3);
   else {
     missing.push({
