@@ -110,14 +110,23 @@ export async function invalidateSession(sessionId: string): Promise<void> {
   await db.session.deleteMany({ where: { id: sessionId } });
 }
 
-/** Deletes the session a raw token belongs to, if any (logout). */
-export async function invalidateSessionByToken(token: string): Promise<void> {
-  await db.session.deleteMany({ where: { tokenHash: hashToken(token) } });
+/** Deletes the session a raw token belongs to, if any (logout). Optionally inside `tx`. */
+export async function invalidateSessionByToken(
+  token: string,
+  opts: { tx?: Prisma.TransactionClient } = {},
+): Promise<void> {
+  await (opts.tx ?? db).session.deleteMany({ where: { tokenHash: hashToken(token) } });
 }
 
-/** Logs a user out everywhere (e.g. when the user is blocked). */
-export async function invalidateUserSessions(userId: string): Promise<void> {
-  await db.session.deleteMany({ where: { userId } });
+/**
+ * Logs a user out everywhere (e.g. when the user is blocked). Pass `tx` to do it
+ * inside the caller's transaction, so it commits or rolls back with the block.
+ */
+export async function invalidateUserSessions(
+  userId: string,
+  opts: { tx?: Prisma.TransactionClient } = {},
+): Promise<void> {
+  await (opts.tx ?? db).session.deleteMany({ where: { userId } });
 }
 
 /** Sets the session cookie. Request context only (Server Action / Route Handler). */

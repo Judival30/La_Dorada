@@ -218,4 +218,28 @@ describe('logoutAction', () => {
     expect(cookieJar.has(SESSION_COOKIE)).toBe(false);
     expect(await db.session.count({ where: { tokenHash: hashToken(token as string) } })).toBe(0);
   });
+
+  it('audits LOGOUT with the user as actor (P10)', async () => {
+    await run(() => loginAction({}, form(email, password)));
+    expect(cookieJar.get(SESSION_COOKIE)?.value).toBeDefined();
+    const before = await auditCount('LOGOUT');
+
+    await run(() => logoutAction());
+
+    expect(await auditCount('LOGOUT')).toBe(before + 1);
+    const row = await db.auditLog.findFirst({
+      where: { action: 'LOGOUT', entityId: userId },
+      orderBy: { seq: 'desc' },
+    });
+    expect(row).toMatchObject({ actorId: userId, entity: 'User', entityId: userId });
+  });
+
+  it('without a valid session only clears the cookie (no LOGOUT audit)', async () => {
+    cookieJar.set(SESSION_COOKIE, { value: 'token-inexistente', options: {} });
+    const before = await auditCount('LOGOUT');
+    const { digest } = await run(() => logoutAction());
+    expect(digest).toContain(';/login;');
+    expect(cookieJar.has(SESSION_COOKIE)).toBe(false);
+    expect(await auditCount('LOGOUT')).toBe(before);
+  });
 });

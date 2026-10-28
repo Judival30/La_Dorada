@@ -14,6 +14,7 @@ import {
   SESSION_COOKIE,
   createSession,
   deleteSessionCookie,
+  hashToken,
   invalidateSessionByToken,
   setSessionCookie,
 } from './session';
@@ -84,9 +85,38 @@ export async function loginAction(_prev: LoginState, form: FormData): Promise<Lo
   redirect(safeNext(next) ?? homePathFor(user.role));
 }
 
+/**
+ * Deletes the current session and the cookie, then redirects to `/login`.
+ * When the token maps to a live session, the deletion and a `LOGOUT` audit row
+ * (actor = that user, spec P10) commit together. An unknown token is just
+ * cleared: there is no user to attribute it to.
+ */
 export async function logoutAction(): Promise<void> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (token) await invalidateSessionByToken(token);
+  if (token) {
+    const session = await db.session.findUnique({
+      where: { tokenHash: hashToken(token) },
+      select: { userId: true },
+    });
+    if (session) {
+      const { ip } = await getRequestContext();
+      await audited(async (tx) => {
+        await invalidateSessionByToken(token, { tx });
+        return {
+          result: undefined,
+          audit: {
+            actorId: session.userId,
+            action: 'LOGOUT',
+            entity: 'User',
+            entityId: session.userId,
+            ip,
+          },
+        };
+      });
+    } else {
+      await invalidateSessionByToken(token);
+    }
+  }
   await deleteSessionCookie();
   redirect('/login');
 }
