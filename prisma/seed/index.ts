@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { hashPassword } from '../../src/server/auth/password';
@@ -6,6 +7,9 @@ import { DEFAULT_SCORE_WEIGHTS, DEFAULT_SECTOR_MULTIPLES } from '../../src/domai
 import { millions } from '../../src/domain/money';
 import { SEED_COMPANIES } from './data/companies';
 import { DEMO_PASSWORD, SEED_USERS, type SeedUser } from './data/users';
+import { getStorage } from '../../src/server/storage';
+import { ADMIN_EMAIL, planVerification, type CasePlan } from './data/verification';
+import { sampleFile } from './fixtures';
 import { svgDataUrl, teaserSvg } from './teaser-art';
 
 export type SeedSummary = {
@@ -15,6 +19,7 @@ export type SeedSummary = {
   financialYears: number;
   opportunities: number;
   settings: number;
+  verificationCases: number;
 };
 
 const BUYER_TYPE = {
@@ -59,7 +64,38 @@ export async function seed(db: PrismaClient): Promise<SeedSummary> {
     financialYears: 0,
     opportunities: 0,
     settings: 0,
+    verificationCases: 0,
   };
+
+  // Verification cases: S3 puts happen BEFORE the transaction (keys need the case id, so new
+  // cases get a pre-generated id). A failed transaction leaves harmless orphan objects.
+  const plans = new Map<string, { plan: CasePlan; caseId: string; keys: Map<string, string> }>();
+  for (const [i, u] of SEED_USERS.entries()) {
+    const plan = planVerification(u, i);
+    if (!plan) continue;
+    const existingUser = await db.user.findUnique({
+      where: { email: u.email },
+      select: { id: true },
+    });
+    const existingCase = existingUser
+      ? await db.verificationCase.findFirst({
+          where: { userId: existingUser.id },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          include: { documents: { select: { type: true } } },
+        })
+      : null;
+    const caseId = existingCase?.id ?? randomUUID();
+    const have = new Set(existingCase?.documents.map((d) => d.type));
+    const keys = new Map<string, string>();
+    for (const doc of plan.documents) {
+      if (have.has(doc.type)) continue;
+      const file = sampleFile(doc.fixture);
+      const key = `verification/${caseId}/${randomUUID()}`;
+      await getStorage().put(key, file.bytes, file.mime);
+      keys.set(doc.type, key);
+    }
+    plans.set(u.email, { plan, caseId, keys });
+  }
 
   await audited(
     async (tx) => {
@@ -120,6 +156,7 @@ export async function seed(db: PrismaClient): Promise<SeedSummary> {
           summary.organizations++;
         }
         const data = {
+          phone: plans.get(u.email)?.plan.phone ?? null,
           name: u.name,
           role: u.role,
           status: u.status,
@@ -134,6 +171,67 @@ export async function seed(db: PrismaClient): Promise<SeedSummary> {
         });
         userIdByEmail.set(u.email, user.id);
         summary.users++;
+      }
+
+      // One verification case per BUYER / SELLER (find by userId, then update or create).
+      const adminId = userIdByEmail.get(ADMIN_EMAIL);
+      if (!adminId) throw new Error('Seed inconsistency: missing back office user');
+      for (const [email, { plan, caseId, keys }] of plans) {
+        const userId = userIdByEmail.get(email);
+        if (!userId) throw new Error('Seed inconsistency: missing user for a verification case');
+        const caseData = {
+          step: plan.step,
+          status: plan.status,
+          profile: plan.profile as unknown as Prisma.InputJsonValue,
+          isLegalRepresentative: plan.isLegalRepresentative,
+          buyerType: plan.buyerType,
+          submittedAt: plan.submittedAt,
+          decidedAt: plan.decidedAt,
+          decidedById: plan.decidedByAdmin ? adminId : null,
+          correctionNotes: plan.correctionNotes,
+          rejectionReason: plan.rejectionReason,
+        };
+        const found = await tx.verificationCase.findFirst({
+          where: { userId },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        });
+        const vc = found
+          ? await tx.verificationCase.update({ where: { id: found.id }, data: caseData })
+          : await tx.verificationCase.create({ data: { id: caseId, userId, ...caseData } });
+
+        if ((await tx.kycChecklistItem.count({ where: { verificationCaseId: vc.id } })) === 0) {
+          await tx.kycChecklistItem.createMany({
+            data: plan.checklist.map((label) => ({
+              verificationCaseId: vc.id,
+              label,
+              done: plan.kycDone,
+              checkedById: plan.kycDone ? adminId : null,
+              checkedAt: plan.kycDone ? plan.decidedAt : null,
+            })),
+          });
+        }
+
+        for (const doc of plan.documents) {
+          const key = keys.get(doc.type);
+          if (!key) continue;
+          const exists = await tx.verificationDocument.findFirst({
+            where: { verificationCaseId: vc.id, type: doc.type },
+            select: { id: true },
+          });
+          if (exists) continue;
+          await tx.verificationDocument.create({
+            data: {
+              verificationCaseId: vc.id,
+              type: doc.type,
+              storageKey: key,
+              mime: sampleFile(doc.fixture).mime,
+              size: sampleFile(doc.fixture).bytes.length,
+              originalName: doc.originalName,
+              reviewStatus: doc.reviewStatus,
+            },
+          });
+        }
+        summary.verificationCases++;
       }
 
       // One opportunity per company.

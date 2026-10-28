@@ -176,4 +176,41 @@ export const SEED_USERS: SeedUser[] = [
       kind: 'COMPANY',
     },
   },
+
+  // Más solicitudes en revisión para la cola del Back Office.
+  {
+    email: 'andres.bernal@demo.ladorada.co',
+    name: 'Andrés Bernal Cuesta',
+    role: 'BUYER',
+    status: 'IN_REVIEW',
+    organization: {
+      name: 'Fondo Sierra Nevada S.A.S.',
+      nit: '900.203.003-3',
+      kind: 'BUYER_ENTITY',
+      buyerType: 'FONDO',
+    },
+  },
+  {
+    email: 'felipe.zapata@demo.ladorada.co',
+    name: 'Felipe Zapata Gil',
+    role: 'BUYER',
+    status: 'IN_REVIEW',
+    organization: {
+      name: 'Grupo Industrial Zapata S.A.S.',
+      nit: '900.204.004-4',
+      kind: 'BUYER_ENTITY',
+      buyerType: 'ESTRATEGICO',
+    },
+  },
+  {
+    email: 'diana.lozano@demo.ladorada.co',
+    name: 'Diana Lozano Mejía',
+    role: 'SELLER',
+    status: 'IN_REVIEW',
+    organization: {
+      name: 'Panificadora Santa Clara S.A.S.',
+      nit: '900.306.006-6',
+      kind: 'COMPANY',
+    },
+  },
 ];

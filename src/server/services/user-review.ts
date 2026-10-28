@@ -698,6 +698,9 @@ export async function decideUser(
     if (!vc) throw new NotFoundError('Verification case not found');
 
     if (d.kind === 'APPROVE') {
+      if (vc.checklist.length === 0) {
+        throw new ValidationError('El caso no tiene checklist KYC; no se puede aprobar.');
+      }
       const missing: string[] = [];
       for (const item of vc.checklist) {
         if (!item.done) missing.push(`Falta completar en el checklist KYC: ${item.label}.`);

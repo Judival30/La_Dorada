@@ -159,7 +159,19 @@ describe('decideUser APPROVE', () => {
     expect(await audits('USER_APPROVED', u.id)).toHaveLength(0);
   });
 
-  it('without every required document APPROVED → ValidationError naming the documents', async () => {
+  it('with an empty KYC checklist → ValidationError; nothing changes', async () => {
+    const u = await inReviewSeller();
+    await approveAllDocuments(u.caseId);
+    await db.kycChecklistItem.deleteMany({ where: { verificationCaseId: u.caseId } });
+
+    const err = await decideUser(bo, u.id, { kind: 'APPROVE' }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ValidationError);
+    expect((err as Error).message).toBe('El caso no tiene checklist KYC; no se puede aprobar.');
+    expect((await db.user.findUniqueOrThrow({ where: { id: u.id } })).status).toBe('IN_REVIEW');
+    expect(await audits('USER_APPROVED', u.id)).toHaveLength(0);
+  });
+
+  it('without every required document APPROVED →ValidationError naming the documents', async () => {
     const u = await inReviewSeller();
     await checkAllKyc(u.caseId);
     const rut = await db.verificationDocument.findFirstOrThrow({
