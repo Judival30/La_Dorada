@@ -16,7 +16,8 @@
     "db:reset": "prisma migrate reset --force",
     "postinstall": "prisma generate",
     "seed": "prisma db seed",
-    "demo:reset": "prisma migrate reset --force"
+    "demo:reset": "prisma migrate reset --force",
+    "vercel-build": "DATABASE_URL=\"$DATABASE_URL_MIGRATE\" prisma migrate deploy && DATABASE_URL=\"$DATABASE_URL_MIGRATE\" prisma db seed && next build"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1157.0",

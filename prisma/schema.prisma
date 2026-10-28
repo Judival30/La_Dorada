@@ -4,8 +4,8 @@
 
 generator client {
   provider      = "prisma-client-js"
-  // native for local dev; musl for the node:24-alpine Docker image.
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  // native for local dev; musl for the node:24-alpine Docker image; rhel for Vercel.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
