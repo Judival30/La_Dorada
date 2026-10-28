@@ -167,12 +167,7 @@ test('the approved seller logs in again and lands on /seller; blocking ends the 
     await expect(admin.getByRole('button', { name: 'Desbloquear cuenta' })).toBeVisible();
 
     await open.reload();
-    await expect(open).toHaveURL(/\/(login|onboarding)/);
-    if (/\/onboarding/.test(open.url())) {
-      await expect(open.getByRole('heading', { name: 'Tu cuenta está bloqueada' })).toBeVisible();
-    }
-    await open.goto('/seller');
-    await expect(open).not.toHaveURL(/\/seller$/);
+    await expect(open).toHaveURL(/\/login/);
   } finally {
     await freshCtx.close();
   }

@@ -57,7 +57,7 @@ La pantalla de login muestra las tres primeras cuentas solo fuera de producción
 pnpm test        # unitarias
 pnpm test:int    # integración (necesita `db` arriba)
 pnpm e2e         # E2E (Playwright; necesita la BD con los datos de demo)
-                # Limitadores en memoria (registro: 5 por 15 min por IP; login: 5 por min): la suite crea 4 cuentas; si repites corridas seguidas, reinicia pnpm dev
+                # Limitadores en memoria (registro: 5 por 15 min por IP; login: 5 por min): la suite crea 4 cuentas y unos 8 inicios de sesión (por debajo de 5 por minuto por correo); si repites corridas seguidas, reinicia pnpm dev
 ```
 
 - `pnpm test:int` descarta y recrea el esquema de la base de `DATABASE_URL_TEST` (su nombre debe terminar en `_test`) y aplica las migraciones. Ver ADR-009.
