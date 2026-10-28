@@ -41,7 +41,9 @@ test.describe('sign-up', () => {
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
 
     await expect(page).toHaveURL(/\/onboarding$/);
-    await expect(page.getByText('Registro pendiente')).toBeVisible();
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Completa tu registro como vendedor' }),
+    ).toBeVisible();
 
     // Signed in: /registro now sends the user back to onboarding.
     await page.goto('/registro');
