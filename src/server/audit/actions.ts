@@ -33,6 +33,12 @@ export const AUDIT_ACTIONS = [
   // Confidential data room, spec R2 / §6 (M4)
   'ACCESS_DENIED',
   'DOCUMENT_DOWNLOADED',
+  // Access requests and NDA (MVP Task 5)
+  'ACCESS_REQUESTED',
+  'NDA_SIGNED',
+  'ACCESS_APPROVED',
+  'ACCESS_REJECTED',
+  'ACCESS_REVOKED',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

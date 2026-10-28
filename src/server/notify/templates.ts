@@ -83,6 +83,41 @@ const SPECS: Record<NotificationKind, Spec> = {
       'Lamentablemente no pudimos publicar tu oportunidad. Ingresa a La Dorada para conocer el motivo.',
     ],
   },
+  ACCESS_REQUESTED: {
+    subject: 'Un comprador solicitó acceso a tu oportunidad',
+    lines: (n) => [
+      `Hola ${n},`,
+      'Un comprador verificado pidió acceso a la información confidencial de tu oportunidad. Cuando firme el acuerdo de confidencialidad podrás aprobar o rechazar su acceso en La Dorada.',
+    ],
+  },
+  NDA_SIGNED: {
+    subject: 'Un comprador firmó el acuerdo de confidencialidad',
+    lines: (n) => [
+      `Hola ${n},`,
+      'Un comprador firmó el acuerdo de confidencialidad de tu oportunidad. Ingresa a La Dorada para revisar su solicitud y decidir si autorizas su acceso al data room.',
+    ],
+  },
+  ACCESS_APPROVED: {
+    subject: 'El vendedor autorizó tu acceso',
+    lines: (n) => [
+      `Hola ${n},`,
+      '¡Buenas noticias! El vendedor autorizó tu acceso. Ya puedes revisar los documentos confidenciales en el data room de la oportunidad.',
+    ],
+  },
+  ACCESS_REJECTED: {
+    subject: 'Resultado de tu solicitud de acceso',
+    lines: (n) => [
+      `Hola ${n},`,
+      'El vendedor no aprobó tu solicitud de acceso a esta oportunidad. Puedes seguir explorando otras oportunidades en La Dorada.',
+    ],
+  },
+  ACCESS_REVOKED: {
+    subject: 'Tu acceso a una oportunidad fue retirado',
+    lines: (n) => [
+      `Hola ${n},`,
+      'Tu acceso a la información confidencial de una oportunidad fue retirado. Si tienes preguntas, comunícate con el equipo de La Dorada.',
+    ],
+  },
 };
 
 /** Builds subject, plain text and simple HTML for `kind`. Interpolated values are HTML-escaped. */
