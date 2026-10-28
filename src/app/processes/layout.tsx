@@ -1,5 +1,6 @@
 import { AppShell } from '@/components/ld/app-shell';
 import { requireUser } from '@/server/auth/guard';
+import { listNotifications } from '@/server/services/notifications';
 
 /**
  * Deals are shared by both parties, so `/processes` lives outside the role
@@ -9,7 +10,11 @@ import { requireUser } from '@/server/auth/guard';
 export default async function ProcessesLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser('BUYER', 'SELLER', 'BACKOFFICE');
   return (
-    <AppShell role={user.role} user={{ name: user.name, email: user.email }}>
+    <AppShell
+      role={user.role}
+      user={{ name: user.name, email: user.email }}
+      notifications={await listNotifications(user)}
+    >
       {children}
     </AppShell>
   );
